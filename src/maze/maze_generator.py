@@ -66,6 +66,7 @@ class MazeGenerator:
 
         for y, row in enumerate(external_maze):
             for x, cell in enumerate(row):
+                maze.wall_mask[y][x] = int(cell)
                 maze.tiles[y][x] = (
                     TileType.WALL if cell == 15 else TileType.CORRIDOR
                 )
@@ -93,13 +94,26 @@ class MazeGenerator:
             maze.tiles[y][maze.width - 1] = TileType.WALL
 
     @staticmethod
-    @staticmethod
     def place_pellets(maze: Maze, config: dict[str, Any]) -> List[Pellet]:
         """Place pellets in walkable tiles."""
         pellets: List[Pellet] = []
         max_pellets = int(config.get("pacgum_count", 42))
-        corners = set(maze.get_corners())
         center = maze.get_center()
+
+        super_candidates = [
+            (1, 1),
+            (maze.width - 2, 1),
+            (1, maze.height - 2),
+            (maze.width - 2, maze.height - 2),
+        ]
+        super_positions: set[tuple[int, int]] = set()
+        for x, y in super_candidates:
+            if maze.is_walkable(x, y):
+                super_positions.add((x, y))
+                pellets.append(Pellet(x, y, is_super=True))
+
+        if len(pellets) >= max_pellets:
+            return pellets[:max_pellets]
 
         for y in range(maze.height):
             for x in range(maze.width):
@@ -107,7 +121,7 @@ class MazeGenerator:
                     return pellets
                 if not maze.is_walkable(x, y):
                     continue
-                if (x, y) in corners or (x, y) == center:
+                if (x, y) in super_positions or (x, y) == center:
                     continue
                 pellets.append(Pellet(x, y))
         return pellets

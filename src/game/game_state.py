@@ -37,6 +37,7 @@ class GameState:
     ghost_positions: List[Position] = field(default_factory=list)
     maze: Optional[Maze] = None
     pellet_positions: List[Position] = field(default_factory=list)
+    super_pellet_positions: List[Position] = field(default_factory=list)
 
     # Pellets
     pellets_eaten: int = 0
@@ -71,6 +72,7 @@ class GameState:
         self.ghost_positions = []
         self.maze = None
         self.pellet_positions = []
+        self.super_pellet_positions = []
         self.pellets_eaten = 0
         self.pellets_total = 0
         self._initialized = True
@@ -92,6 +94,7 @@ class GameState:
         self.ghost_positions = []
         self.maze = None
         self.pellet_positions = []
+        self.super_pellet_positions = []
         self.pellets_eaten = 0
         self.pellets_total = 0
 
@@ -130,6 +133,10 @@ class GameState:
     def set_pellet_positions(self, positions: List[Position]) -> None:
         """Set pellet positions for rendering."""
         self.pellet_positions = positions
+
+    def set_super_pellet_positions(self, positions: List[Position]) -> None:
+        """Set super pellet positions for rendering."""
+        self.super_pellet_positions = positions
 
     def update_pellets(self, eaten: int, total: int) -> None:
         """Update pellet counters."""

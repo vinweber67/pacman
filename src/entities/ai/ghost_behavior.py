@@ -22,6 +22,8 @@ class GhostAI:
         maze: Maze,
     ) -> Optional[Position]:
         """Choose the next target tile for a ghost."""
+        if ghost.is_respawning:
+            return None
         if ghost.is_edible:
             return GhostAI._flee_behavior(ghost, pacman, maze)
         return GhostAI._chase_behavior(ghost, pacman, maze)

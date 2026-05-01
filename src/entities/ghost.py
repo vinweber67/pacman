@@ -26,6 +26,8 @@ class Ghost(Entity):
         self.color = self._ghost_color(ghost_type)
         self.is_edible: bool = False
         self.edible_timer: float = 0.0
+        self.is_respawning: bool = False
+        self.respawn_timer: float = 0.0
         self.spawn_x: int = x
         self.spawn_y: int = y
 
@@ -42,6 +44,12 @@ class Ghost(Entity):
 
     def update(self, delta_time: float) -> None:
         """Update the ghost state."""
+        if self.is_respawning:
+            self.respawn_timer = max(0.0, self.respawn_timer - delta_time)
+            if self.respawn_timer == 0.0:
+                self.respawn()
+            return
+
         if self.is_edible:
             self.edible_timer = max(0.0, self.edible_timer - delta_time)
             if self.edible_timer == 0.0:
@@ -55,5 +63,15 @@ class Ghost(Entity):
     def respawn(self) -> None:
         """Return the ghost to its spawn point."""
         self.move_to(self.spawn_x, self.spawn_y)
+        self.is_respawning = False
+        self.respawn_timer = 0.0
         self.is_edible = False
         self.edible_timer = 0.0
+
+    def start_respawn(self, delay: float) -> None:
+        """Hide the ghost then respawn it after a delay."""
+        self.is_respawning = True
+        self.respawn_timer = max(0.0, delay)
+        self.is_edible = False
+        self.edible_timer = 0.0
+        self.move_to(-1, -1)

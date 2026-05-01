@@ -41,9 +41,10 @@ class TestMazeGenerator:
     def test_place_pellets(self) -> None:
         """Pellet placement returns pellets on walkable tiles."""
         maze = MazeGenerator.generate(7, 7, 42)
-        pellets = MazeGenerator.place_pellets(maze, {"pacgum_count": 5})
-        assert len(pellets) == 5
-        assert all(pellet.is_super is False for pellet in pellets)
+        pellets = MazeGenerator.place_pellets(maze, {"pacgum_count": 8})
+        assert len(pellets) == 8
+        assert any(pellet.is_super for pellet in pellets)
+        assert all(maze.is_walkable(pellet.x, pellet.y) for pellet in pellets)
 
     def test_place_ghosts(self) -> None:
         """Ghost placement returns the four classic ghosts when possible."""

@@ -18,6 +18,10 @@ class Maze:
             [TileType.CORRIDOR for _ in range(width)]
             for _ in range(height)
         ]
+        self.wall_mask: List[List[int]] = [
+            [0 for _ in range(width)]
+            for _ in range(height)
+        ]
 
     def is_walkable(self, x: int, y: int) -> bool:
         """Return whether a tile can be walked on."""

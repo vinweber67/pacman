@@ -61,7 +61,18 @@ class LevelManager:
         self.state.set_pacman_position(pacman.x, pacman.y)
         self.state.set_ghost_positions([ghost.position for ghost in ghosts])
         self.state.set_pellet_positions(
-            [pellet.position for pellet in pellets]
+            [
+                pellet.position
+                for pellet in pellets
+                if not pellet.is_super
+            ]
+        )
+        self.state.set_super_pellet_positions(
+            [
+                pellet.position
+                for pellet in pellets
+                if pellet.is_super
+            ]
         )
         self.state.update_pellets(len(pellets), len(pellets))
 

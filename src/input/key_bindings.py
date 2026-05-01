@@ -29,6 +29,7 @@ KEY_MAP = {
     ord("d"): Action.MOVE_RIGHT,
     ord("p"): Action.PAUSE,
     ord(" "): Action.SELECT,
+    ord("\r"): Action.SELECT,
     65307: Action.BACK,
     ord("c"): Action.CHEAT,
 }

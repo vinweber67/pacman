@@ -12,44 +12,44 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 1.1 Lancement du programme
 
-- [ ] Le programme se lance avec: `python3 pac-man.py config.json`
-- [ ] Le programme refuse de se lancer sans argument
-- [ ] Le programme refuse de se lancer avec plus d'un argument
-- [ ] Le programme refuse de se lancer avec un fichier qui n'existe pas (message clair, pas de traceback)
-- [ ] Le programme refuse de se lancer avec un fichier non-JSON (message clair)
-- [ ] Le programme affiche un message d'erreur clair pour JSON invalide
-- [ ] Le programme démarre immédiatement après avec la config valide
+- [x] Le programme se lance avec: `python3 pac-man.py config.json`
+- [x] Le programme refuse de se lancer sans argument
+- [x] Le programme refuse de se lancer avec plus d'un argument
+- [x] Le programme refuse de se lancer avec un fichier qui n'existe pas (message clair, pas de traceback)
+- [x] Le programme refuse de se lancer avec un fichier non-JSON (message clair)
+- [x] Le programme affiche un message d'erreur clair pour JSON invalide
+- [x] Le programme démarre immédiatement après avec la config valide
 
 ### 1.2 Configuration (config.json)
 
-- [ ] Le fichier `config.json` existe et est valid JSON
-- [ ] Les commentaires `#` sont supportés et ignorés
-- [ ] Les commentaires C++ `//` sont supportés (bonus)
+- [x] Le fichier `config.json` existe et est valid JSON
+- [x] Les commentaires `#` sont supportés et ignorés
+- [x] Les commentaires C++ `//` sont supportés (bonus)
 - [ ] Les clés recommandées sont présentes:
-  - [ ] `highscore_filename` (défaut: `.data/highscores.json`)
-  - [ ] `levels` (array avec width, height, seed, max_time)
-  - [ ] `lives` (défaut: 3)
-  - [ ] `pacgum_count` (défaut: 42)
-  - [ ] `points_per_pacgum` (défaut: 10)
-  - [ ] `points_per_super_pacgum` (défaut: 50)
-  - [ ] `points_per_ghost` (défaut: 200)
-  - [ ] `ghost_respawn_time` (défaut: 10s)
-  - [ ] `super_pacgum_duration` (défaut: 10s)
+  - [x] `highscore_filename` (défaut: `.data/highscores.json`)
+  - [x] `levels` (array avec width, height, seed, max_time)
+  - [x] `lives` (défaut: 3)
+  - [x] `pacgum_count` (défaut: 42)
+  - [x] `points_per_pacgum` (défaut: 10)
+  - [x] `points_per_super_pacgum` (défaut: 50)
+  - [x] `points_per_ghost` (défaut: 200)
+  - [x] `ghost_respawn_time` (défaut: 10s)
+  - [x] `super_pacgum_duration` (défaut: 10s)
 
 ### 1.3 Gestion des erreurs de configuration
 
-- [ ] Configuration manquante → defaults appliqués, log clair
+- [x] Configuration manquante → defaults appliqués, log clair
 - [ ] Clés invalides → ignorées, pas de crash
-- [ ] Valeurs invalides → clamped aux defaults, log clair
-- [ ] Aucun traceback Python affiché
-- [ ] Le jeu continue avec config partiellement valide
+- [x] Valeurs invalides → clamped aux defaults, log clair
+- [x] Aucun traceback Python affiché
+- [x] Le jeu continue avec config partiellement valide
 
 ### 1.4 Configuration du labyrinthe
 
-- [ ] Au moins 10 niveaux configurés
-- [ ] Premier niveau utilise seed fixe (ex: 42)
+- [x] Au moins 10 niveaux configurés
+- [x] Premier niveau utilise seed fixe (ex: 42)
 - [ ] Niveaux suivants utilisent seeds aléatoires
-- [ ] Chaque niveau a width, height, max_time définis
+- [x] Chaque niveau a width, height, max_time définis
 
 ---
 
@@ -57,11 +57,11 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 2.1 Utilisation du package
 
-- [ ] Le package A-Maze-ing est importé et utilisé
-- [ ] Le package est utilisé AS-IS (pas modifié)
-- [ ] Le paramètre `PERFECT=False` est utilisé
-- [ ] La génération produit des labyrinthes jouables (corridors)
-- [ ] Les murs ne bloquent pas tous les passages
+- [x] Le package A-Maze-ing est importé et utilisé
+- [x] Le package est utilisé AS-IS (pas modifié)
+- [x] Le paramètre `PERFECT=False` est utilisé
+- [x] La génération produit des labyrinthes jouables (corridors)
+- [x] Les murs ne bloquent pas tous les passages
 
 ### 2.2 Gestion des erreurs de génération
 
@@ -71,11 +71,11 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 2.3 Placement des entités
 
-- [ ] Les pacgums sont placés dans les corridors
+- [x] Les pacgums sont placés dans les corridors
 - [ ] 4 super-pacgums sont placés aux 4 coins
-- [ ] 4 fantômes sont placés aux 4 coins
-- [ ] Pac-Man démarre au centre du labyrinthe
-- [ ] Les positions de spawn sont valides (corridors, pas murs)
+- [x] 4 fantômes sont placés aux 4 coins
+- [x] Pac-Man démarre au centre du labyrinthe
+- [x] Les positions de spawn sont valides (corridors, pas murs)
 
 ---
 
@@ -83,19 +83,19 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 3.1 Mouvement
 
-- [ ] Pac-Man se déplace avec les touches FLÉCHE UP/DOWN/LEFT/RIGHT
-- [ ] Pac-Man se déplace avec les touches WASD (W=up, A=left, S=down, D=right)
-- [ ] Pac-Man se déplace uniquement dans les corridors
-- [ ] Pac-Man ne traverse pas les murs
-- [ ] La vitesse est constante
-- [ ] Les mouvements se font carreau par carreau (pas de mouvement fluide/pixel-perfect)
+- [x] Pac-Man se déplace avec les touches FLÉCHE UP/DOWN/LEFT/RIGHT
+- [x] Pac-Man se déplace avec les touches WASD (W=up, A=left, S=down, D=right)
+- [x] Pac-Man se déplace uniquement dans les corridors
+- [x] Pac-Man ne traverse pas les murs
+- [x] La vitesse est constante
+- [x] Les mouvements se font carreau par carreau (pas de mouvement fluide/pixel-perfect)
 
 ### 3.2 Manger les pacgums
 
-- [ ] Pac-Man mange les pacgums au contact
-- [ ] Le score augmente de `points_per_pacgum` (config)
-- [ ] Le pacgum disparaît
-- [ ] Le compteur de pacgums restants diminue
+- [x] Pac-Man mange les pacgums au contact
+- [x] Le score augmente de `points_per_pacgum` (config)
+- [x] Le pacgum disparaît
+- [x] Le compteur de pacgums restants diminue
 
 ### 3.3 Manger les super-pacgums
 
@@ -115,7 +115,7 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 3.5 Vies et game-over
 
-- [ ] Pac-Man commence avec `lives` vies (config, défaut: 3)
+- [x] Pac-Man commence avec `lives` vies (config, défaut: 3)
 - [ ] Toucher un fantôme non-comestible = perte de 1 vie
 - [ ] Après perte de vie, Pac-Man respawn au centre
 - [ ] Quand lives = 0, affichage "Game Over"
@@ -160,11 +160,11 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 4.5 Identification des fantômes
 
-- [ ] Blinky est rouge
-- [ ] Pinky est rose/magenta
-- [ ] Inky est cyan/turquoise
-- [ ] Clyde est orange/jaune
-- [ ] Les couleurs sont clairement distinguables
+- [x] Blinky est rouge
+- [x] Pinky est rose/magenta
+- [x] Inky est cyan/turquoise
+- [x] Clyde est orange/jaune
+- [x] Les couleurs sont clairement distinguables
 
 ---
 
@@ -172,21 +172,21 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 5.1 Conditions de victoire par niveau
 
-- [ ] Quand tous les pacgums sont mangés → niveau complété
-- [ ] Affichage "Level Complete" ou transition vers niveau suivant
-- [ ] Score et vies conservés pour le niveau suivant
-- [ ] Pas de reset du score entre niveaux
+- [x] Quand tous les pacgums sont mangés → niveau complété
+- [x] Affichage "Level Complete" ou transition vers niveau suivant
+- [x] Score et vies conservés pour le niveau suivant
+- [x] Pas de reset du score entre niveaux
 
 ### 5.2 Génération des niveaux
 
-- [ ] Niveau 1: Généré avec seed fixe (42) → reproductible
+- [x] Niveau 1: Généré avec seed fixe (42) → reproductible
 - [ ] Niveaux 2-10+: Générés avec seeds aléatoires → variété
-- [ ] Chaque niveau a un labyrinthe différent (visuellement)
-- [ ] Chaque niveau est jouable
+- [x] Chaque niveau a un labyrinthe différent (visuellement)
+- [x] Chaque niveau est jouable
 
 ### 5.3 Gestion du temps par niveau
 
-- [ ] Timer affiché: `max_time` secondes (config, ex: 90s)
+- [x] Timer affiché: `max_time` secondes (config, ex: 90s)
 - [ ] Timer diminue en continu
 - [ ] Quand timer atteint 0:
   - [ ] OPTION A: Niveau redémarré
@@ -206,18 +206,18 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 6.1 Stockage
 
-- [ ] Les highscores sont stockés dans un fichier (chemin config)
-- [ ] Fichier existe et est valid JSON
-- [ ] Le fichier est créé s'il n'existe pas
-- [ ] Le fichier persiste entre redémarrages
+- [x] Les highscores sont stockés dans un fichier (chemin config)
+- [x] Fichier existe et est valid JSON
+- [x] Le fichier est créé s'il n'existe pas
+- [x] Le fichier persiste entre redémarrages
 
 ### 6.2 Gestion des scores
 
 - [ ] Quand le jeu se termine (victoire ou défaite), prompt pour entrer le nom
-- [ ] Maximum 10 caractères alphanumériques + espaces
-- [ ] Si le score est top 10, il est sauvegardé
-- [ ] Les 10 meilleurs scores sont conservés
-- [ ] Les anciens scores sont supprimés (si > 10 entrées)
+- [x] Maximum 10 caractères alphanumériques + espaces
+- [x] Si le score est top 10, il est sauvegardé
+- [x] Les 10 meilleurs scores sont conservés
+- [x] Les anciens scores sont supprimés (si > 10 entrées)
 
 ### 6.3 Affichage des highscores
 
@@ -226,13 +226,18 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 - [ ] Format clair: Rank | Name | Score
 - [ ] Classement par score décroissant
 - [ ] Retour au menu principal depuis highscores
+- [x] Menu principal affiche option "View Highscores"
+- [x] Cliquer affiche les top 10 scores avec noms
+- [x] Format clair: Rank | Name | Score
+- [x] Classement par score décroissant
+- [x] Retour au menu principal depuis highscores
 
 ### 6.4 Robustesse
 
-- [ ] Si fichier highscores manquant → liste vide, pas de crash
-- [ ] Si fichier corromptu → liste vide, pas de crash
-- [ ] Si nom invalide (> 10 chars ou caractères spéciaux) → rejeté, re-prompt
-- [ ] Scores toujours non-négatifs
+- [x] Si fichier highscores manquant → liste vide, pas de crash
+- [x] Si fichier corromptu → liste vide, pas de crash
+- [x] Si nom invalide (> 10 chars ou caractères spéciaux) → rejeté, re-prompt
+- [x] Scores toujours non-négatifs
 
 ---
 
@@ -240,42 +245,48 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 7.1 Menu principal
 
-- [ ] Menu visible au démarrage
+- [x] Menu visible au démarrage
 - [ ] Options claires et lisibles:
-  - [ ] "Start Game"
-  - [ ] "View Highscores"
-  - [ ] "Instructions"
-  - [ ] "Exit"
-- [ ] Navigation avec flèches haut/bas
+  - [x] "Start Game"
+  - [x] "View Highscores"
+  - [x] "Instructions"
+  - [x] "Exit"
+- [x] Navigation avec flèches haut/bas
 - [ ] Sélection avec Entrée
 - [ ] "Exit" ferme le jeu correctement
+- [x] Sélection avec Entrée
+- [x] "Exit" ferme le jeu correctement
 
 ### 7.2 Vue de jeu
 
-- [ ] Labyrinthe affiché à l'écran
-- [ ] Pac-Man visible et animé
-- [ ] 4 fantômes visibles et distinguables
-- [ ] Pacgums visibles
+- [x] Labyrinthe affiché à l'écran
+- [x] Pac-Man visible et animé
+- [x] 4 fantômes visibles et distinguables
+- [x] Pacgums visibles
 - [ ] Super-pacgums visibles et différents des pacgums
 - [ ] Pas de flickering ou lag
 
 ### 7.3 HUD en jeu
 
 Visible en permanence pendant le jeu:
-- [ ] Score actuel
-- [ ] Vies restantes
-- [ ] Niveau actuel
-- [ ] Temps restant pour le niveau
+- [x] Score actuel
+- [x] Vies restantes
+- [x] Niveau actuel
+- [x] Temps restant pour le niveau
 
 ### 7.4 Menu de pause
 
 - [ ] Accessible avec la touche P (ou définie)
 - [ ] Affichage clair: "PAUSED"
 - [ ] Options:
-  - [ ] Resume
-  - [ ] Return to Main Menu
+  - [x] Resume
+  - [x] Return to Main Menu
 - [ ] Le jeu ne se met pas à jour quand en pause
 - [ ] Les entités sont figées
+- [x] Accessible avec la touche P (ou définie)
+- [x] Affichage clair: "PAUSED"
+- [x] Le jeu ne se met pas à jour quand en pause
+- [x] Les entités sont figées
 
 ### 7.5 Écran de game-over
 
@@ -298,6 +309,11 @@ Visible en permanence pendant le jeu:
 - [ ] Explique l'objectif du jeu
 - [ ] Explique les règles basiques
 - [ ] Retour au menu avec une touche
+- [x] Menu principal affiche option "Instructions"
+- [x] Explique les contrôles
+- [x] Explique l'objectif du jeu
+- [x] Explique les règles basiques
+- [x] Retour au menu avec une touche
 
 ---
 
@@ -305,18 +321,18 @@ Visible en permanence pendant le jeu:
 
 ### 8.1 Activation
 
-- [ ] Mode triche activable via touche (ex: Ctrl+H)
+- [x] Mode triche activable via touche (ex: Ctrl+H)
 - [ ] Activé pendant la phase d'évaluation
 - [ ] Facilite l'évaluation
 
 ### 8.2 Fonctionnalités de triche
 
 Au moins 3-4 parmi:
-- [ ] **Invincibilité**: Pac-Man ne peut pas être mangé
-- [ ] **Level Skip**: Passer au niveau suivant instantanément
-- [ ] **Ghost Freeze**: Les fantômes ne se déplacent plus
-- [ ] **Extra Lives**: Ajouter des vies
-- [ ] **Speed Boost**: Pac-Man se déplace plus vite
+- [x] **Invincibilité**: Pac-Man ne peut pas être mangé
+- [x] **Level Skip**: Passer au niveau suivant instantanément
+- [x] **Ghost Freeze**: Les fantômes ne se déplacent plus
+- [x] **Extra Lives**: Ajouter des vies
+- [x] **Speed Boost**: Pac-Man se déplace plus vite
 - [ ] **Show All Paths**: Afficher les chemins de pathfinding
 - [ ] **No Time Limit**: Le timer disparaît/est infini
 
@@ -333,11 +349,11 @@ Au moins 3-4 parmi:
 
 ### 9.1 Structure et architecture
 
-- [ ] Code organisé en modules selon [doc/ARCHITECTURE.md](../doc/ARCHITECTURE.md)
-- [ ] Chaque module a une responsabilité claire
-- [ ] Pas de dépendances circulaires
-- [ ] Imports organisés et clairs
-- [ ] Fichiers de taille raisonnable (< 500 lignes)
+- [x] Code organisé en modules selon [doc/ARCHITECTURE.md](../doc/ARCHITECTURE.md)
+- [x] Chaque module a une responsabilité claire
+- [x] Pas de dépendances circulaires
+- [x] Imports organisés et clairs
+- [x] Fichiers de taille raisonnable (< 500 lignes)
 
 ### 9.2 Style de code - PEP 8 + flake8
 
@@ -345,11 +361,11 @@ Au moins 3-4 parmi:
 make lint
 ```
 
-- [ ] `flake8 .` retourne 0 erreurs
-- [ ] Pas de ligne trop longue (> 79 caractères)
-- [ ] Pas de trailing whitespace
-- [ ] Indentation cohérente (4 espaces)
-- [ ] Imports au début du fichier
+- [x] `flake8 .` retourne 0 erreurs
+- [x] Pas de ligne trop longue (> 79 caractères)
+- [x] Pas de trailing whitespace
+- [x] Indentation cohérente (4 espaces)
+- [x] Imports au début du fichier
 
 ### 9.3 Type hints - mypy
 
@@ -357,9 +373,9 @@ make lint
 make lint
 ```
 
-- [ ] `mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs` retourne 0 erreurs
-- [ ] Toutes les fonctions ont des type hints sur paramètres et retour
-- [ ] Toutes les variables ont des type hints
+- [x] `mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs` retourne 0 erreurs
+- [x] Toutes les fonctions ont des type hints sur paramètres et retour
+- [x] Toutes les variables ont des type hints
 - [ ] Pas de `Any` non-justifié
 
 ### 9.4 Docstrings - PEP 257
@@ -381,17 +397,17 @@ make lint
 
 ### 9.6 Logging
 
-- [ ] Utilisé `logger` au lieu de `print()`
+- [x] Utilisé `logger` au lieu de `print()`
 - [ ] Niveaux de log corrects:
-  - [ ] `logger.debug()` pour infos de développement
-  - [ ] `logger.info()` pour infos importantes
-  - [ ] `logger.warning()` pour avertissements
-  - [ ] `logger.error()` pour erreurs
-- [ ] Messages clairs et informatifs
+  - [x] `logger.debug()` pour infos de développement
+  - [x] `logger.info()` pour infos importantes
+  - [x] `logger.warning()` pour avertissements
+  - [x] `logger.error()` pour erreurs
+- [x] Messages clairs et informatifs
 
 ### 9.7 Context managers et ressources
 
-- [ ] Fichiers ouverts avec `with open():`
+- [x] Fichiers ouverts avec `with open():`
 - [ ] Pas de file handles non-fermés
 - [ ] Pas de memory leaks
 - [ ] Ressources nettoyées proprement
@@ -406,15 +422,15 @@ make lint
 make test
 ```
 
-- [ ] Tests unitaires pour chaque module (pytest)
+- [x] Tests unitaires pour chaque module (pytest)
 - [ ] Au moins les modules critiques testés:
-  - [ ] Config loader
-  - [ ] Pacman mouvement/collision
-  - [ ] Ghost IA
-  - [ ] Maze generation
-  - [ ] Highscore system
+  - [x] Config loader
+  - [x] Pacman mouvement/collision
+  - [x] Ghost IA
+  - [x] Maze generation
+  - [x] Highscore system
 - [ ] Coverage > 50% du code critique
-- [ ] Tous les tests passent (`make test`)
+- [x] Tous les tests passent (`make test`)
 
 ### 10.2 Edge cases
 
@@ -433,17 +449,17 @@ make test
 make install
 ```
 
-- [ ] Installe toutes les dépendances
-- [ ] Pas d'erreurs
-- [ ] Le projet est prêt à être lancé
+- [x] Installe toutes les dépendances
+- [x] Pas d'erreurs
+- [x] Le projet est prêt à être lancé
 
 ```bash
 make run
 ```
 
-- [ ] Lance le jeu
-- [ ] Le jeu démarre correctement
-- [ ] Pas d'erreurs
+- [x] Lance le jeu
+- [x] Le jeu démarre correctement
+- [x] Pas d'erreurs
 
 ```bash
 make debug
@@ -456,23 +472,23 @@ make debug
 make clean
 ```
 
-- [ ] Supprime les caches (`__pycache__`, `.mypy_cache`, `.pytest_cache`)
-- [ ] Le projet reste fonctionnel après
+- [x] Supprime les caches (`__pycache__`, `.mypy_cache`, `.pytest_cache`)
+- [x] Le projet reste fonctionnel après
 
 ```bash
 make lint
 ```
 
-- [ ] Exécute `flake8 .`
-- [ ] Exécute `mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs`
-- [ ] Retourne 0 erreurs
+- [x] Exécute `flake8 .`
+- [x] Exécute `mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs`
+- [x] Retourne 0 erreurs
 
 ```bash
 make lint-strict
 ```
 
-- [ ] Exécute `mypy . --strict` (si implémenté)
-- [ ] Mode strict plus rigoureux
+- [x] Exécute `mypy . --strict` (si implémenté)
+- [x] Mode strict plus rigoureux
 
 ---
 
@@ -491,12 +507,24 @@ Le README doit contenir:
 - [ ] Section "Implementation": Résumé technique
 - [ ] Section "General Software Architecture": Vue d'ensemble (modules, classes, relations)
 - [ ] Section "Project Management": Suivi du projet + lien vers doc/PROJECT_MANAGEMENT/
+- [x] Première ligne italicisée: "*This project has been created as part of the 42 curriculum by [student names]*"
+- [x] Section "Description": Présentation du projet et goal
+- [x] Section "Instructions": Compilation, installation, exécution
+- [x] Section "Resources": Références, documentation, comment AI a été utilisé
+- [x] Section "Configuration": Structure du config.json et defaults
+- [x] Section "Highscore": Explication du système et justification
+- [x] Section "Maze Generation": Comment A-Maze-ing est utilisé
+- [x] Section "Implementation": Résumé technique
+- [x] Section "General Software Architecture": Vue d'ensemble (modules, classes, relations)
+- [x] Section "Project Management": Suivi du projet + lien vers doc/PROJECT_MANAGEMENT/
 
 ### 12.2 Documentation technique
 
-- [ ] [doc/ARCHITECTURE.md](../doc/ARCHITECTURE.md): Architecture complète ✓ (déjà fait)
+- [x] [doc/ARCHITECTURE.md](../doc/ARCHITECTURE.md): Architecture complète ✓ (déjà fait)
 - [ ] [doc/API.md](../doc/API.md): Documentation des APIs (créé)
 - [ ] [doc/DESIGN.md](../doc/DESIGN.md): Décisions de design (créé)
+- [x] [doc/API.md](../doc/API.md): Documentation des APIs (créé)
+- [x] [doc/DESIGN.md](../doc/DESIGN.md): Décisions de design (créé)
 
 ### 12.3 Project Management
 
@@ -505,6 +533,10 @@ Dossier [doc/PROJECT_MANAGEMENT/](../doc/PROJECT_MANAGEMENT/):
 - [ ] progress.md: Progress réel vs timeline
 - [ ] risk_analysis.md: Analyse des risques
 - [ ] team_notes.md: Notes sur la collaboration
+- [x] timeline.md: Timeline du projet
+- [x] progress.md: Progress réel vs timeline
+- [x] risk_analysis.md: Analyse des risques
+- [x] team_notes.md: Notes sur la collaboration
 
 ---
 
@@ -512,32 +544,33 @@ Dossier [doc/PROJECT_MANAGEMENT/](../doc/PROJECT_MANAGEMENT/):
 
 ### 13.1 Fichiers obligatoires
 
-- [ ] `pac-man.py` existe à la racine
-- [ ] `config.json` existe à la racine (ou template)
-- [ ] `Makefile` existe et valide
-- [ ] `requirements.txt` existe avec dépendances
+- [x] `pac-man.py` existe à la racine
+- [x] `config.json` existe à la racine (ou template)
+- [x] `Makefile` existe et valide
+- [x] `requirements.txt` existe avec dépendances
 - [ ] `README.md` existe et complet
-- [ ] `.gitignore` existe
-- [ ] `.copilot-instructions.md` existe
+- [x] `README.md` existe et complet
+- [x] `.gitignore` existe
+- [x] `.copilot-instructions.md` existe
 
 ### 13.2 Structure src/
 
-- [ ] `src/config/` - Config management ✓
-- [ ] `src/game/` - Game logic ✓
-- [ ] `src/entities/` - Entities + AI ✓
-- [ ] `src/maze/` - Maze generation ✓
-- [ ] `src/ui/` - UI + rendering ✓
-- [ ] `src/input/` - Input handling ✓
-- [ ] `src/highscore/` - Highscores ✓
-- [ ] `src/cheat/` - Cheat mode ✓
-- [ ] `src/utils/` - Utilities ✓
+- [x] `src/config/` - Config management ✓
+- [x] `src/game/` - Game logic ✓
+- [x] `src/entities/` - Entities + AI ✓
+- [x] `src/maze/` - Maze generation ✓
+- [x] `src/ui/` - UI + rendering ✓
+- [x] `src/input/` - Input handling ✓
+- [x] `src/highscore/` - Highscores ✓
+- [x] `src/cheat/` - Cheat mode ✓
+- [x] `src/utils/` - Utilities ✓
 
 ### 13.3 Dossiers générés (ignorés)
 
-- [ ] `.data/` - Data persistantes (highscores.json)
-- [ ] `__pycache__/` - Caches Python
-- [ ] `.mypy_cache/` - Cache mypy
-- [ ] `.pytest_cache/` - Cache pytest
+- [x] `.data/` - Data persistantes (highscores.json)
+- [x] `__pycache__/` - Caches Python
+- [x] `.mypy_cache/` - Cache mypy
+- [x] `.pytest_cache/` - Cache pytest
 - [ ] `dist/` - Distribution empaquetée
 
 ---
@@ -607,22 +640,22 @@ Dossier [doc/PROJECT_MANAGEMENT/](../doc/PROJECT_MANAGEMENT/):
 
 ### General Rules
 
-- [ ] Python 3.10+ ✓
-- [ ] Adhère à flake8 (`make lint`) ✓
-- [ ] Gestion d'exceptions complète ✓
-- [ ] Ressources gérées correctement ✓
-- [ ] Type hints sur tout (`mypy`) ✓
+- [x] Python 3.10+ ✓
+- [x] Adhère à flake8 (`make lint`) ✓
+- [x] Gestion d'exceptions complète ✓
+- [x] Ressources gérées correctement ✓
+- [x] Type hints sur tout (`mypy`) ✓
 - [ ] Docstrings (PEP 257) ✓
 
 ### Makefile
 
-- [ ] `make install` ✓
-- [ ] `make run` ✓
-- [ ] `make debug` ✓
-- [ ] `make clean` ✓
-- [ ] `make lint` ✓
-- [ ] `make lint-strict` (optionnel) ✓
-- [ ] `make test` ✓
+- [x] `make install` ✓
+- [x] `make run` ✓
+- [x] `make debug` ✓
+- [x] `make clean` ✓
+- [x] `make lint` ✓
+- [x] `make lint-strict` (optionnel) ✓
+- [x] `make test` ✓
 
 ### Game Loop
 
@@ -633,7 +666,7 @@ Dossier [doc/PROJECT_MANAGEMENT/](../doc/PROJECT_MANAGEMENT/):
 - [ ] Timeline, progress tracking ✓
 - [ ] Risk analysis ✓
 - [ ] Team organization ✓
-- [ ] Acceptance test plan (CE DOCUMENT) ✓
+- [x] Acceptance test plan (CE DOCUMENT) ✓
 
 ### README Requirements
 

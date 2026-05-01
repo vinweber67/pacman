@@ -6,7 +6,11 @@ from typing import Dict
 
 from src.ui.renderer import Renderer
 from src.ui.scenes.game_scene import GameScene
+from src.ui.scenes.game_over import GameOverScene
+from src.ui.scenes.highscores import HighscoresScene
+from src.ui.scenes.instructions import InstructionsScene
 from src.ui.scenes.main_menu import MainMenuScene
+from src.ui.scenes.pause_menu import PauseMenuScene
 from src.ui.scenes.scene import Scene
 
 
@@ -18,6 +22,10 @@ class UIManager:
         self.scenes: Dict[str, Scene] = {
             "menu": MainMenuScene(),
             "game": GameScene(),
+            "pause": PauseMenuScene(),
+            "highscores": HighscoresScene(),
+            "instructions": InstructionsScene(),
+            "game_over": GameOverScene(),
         }
         self.current_scene_name = "menu"
         self.current_scene = self.scenes[self.current_scene_name]
@@ -44,3 +52,12 @@ class UIManager:
     def handle_input(self, key: int) -> None:
         """Forward input to the active scene."""
         self.current_scene.handle_input(key)
+
+    def set_highscores(self, rows: list[str]) -> None:
+        """Inject preformatted highscore rows into highscores scene."""
+        scene = self.scenes.get("highscores")
+        if scene is None:
+            return
+        set_rows = getattr(scene, "set_rows", None)
+        if callable(set_rows):
+            set_rows(rows)
