@@ -21,11 +21,6 @@ install:
 	tmp_wheel="/tmp/mazegenerator-2.0.1-py3-none-any.whl"; \
 	cp "4 Pacman - data.whl" "$$tmp_wheel"; \
 	$(PIP) install "$$tmp_wheel"; \
-	if [ -f "mlx-2.2-py3-none-any.whl" ]; then \
-		$(PIP) install "mlx-2.2-py3-none-any.whl"; \
-	else \
-		echo "Warning: optional wheel 'mlx-2.2-py3-none-any.whl' not found"; \
-	fi; \
 	$(PIP) install -r requirements.txt
 
 run:

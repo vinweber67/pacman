@@ -57,8 +57,12 @@ class LevelManager:
         self.state.current_level = level_number
         self.state.level_time_remaining = max_time
         self.state.lives = self.state.lives or DEFAULT_LIVES
+        self.state.set_maze(maze)
         self.state.set_pacman_position(pacman.x, pacman.y)
         self.state.set_ghost_positions([ghost.position for ghost in ghosts])
+        self.state.set_pellet_positions(
+            [pellet.position for pellet in pellets]
+        )
         self.state.update_pellets(len(pellets), len(pellets))
 
         self.current_level_data = LevelData(

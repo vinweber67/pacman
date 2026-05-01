@@ -1,8 +1,11 @@
 """Global game state using Singleton pattern."""
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Any
+from __future__ import annotations
 
+from dataclasses import dataclass, field
+from typing import Any, List, Optional
+
+from src.maze.maze import Maze
 from src.utils.types import Position
 from src.utils.logger import setup_logger
 
@@ -32,6 +35,8 @@ class GameState:
     # Entity positions
     pacman_position: Position = (10, 10)
     ghost_positions: List[Position] = field(default_factory=list)
+    maze: Optional[Maze] = None
+    pellet_positions: List[Position] = field(default_factory=list)
 
     # Pellets
     pellets_eaten: int = 0
@@ -64,6 +69,8 @@ class GameState:
         self.player_speed_multiplier = 1.0
         self.pacman_position = (10, 10)
         self.ghost_positions = []
+        self.maze = None
+        self.pellet_positions = []
         self.pellets_eaten = 0
         self.pellets_total = 0
         self._initialized = True
@@ -83,6 +90,8 @@ class GameState:
         self.player_speed_multiplier = 1.0
         self.pacman_position = (10, 10)
         self.ghost_positions = []
+        self.maze = None
+        self.pellet_positions = []
         self.pellets_eaten = 0
         self.pellets_total = 0
 
@@ -113,6 +122,14 @@ class GameState:
     def set_ghost_positions(self, positions: List[Position]) -> None:
         """Set all ghost positions."""
         self.ghost_positions = positions
+
+    def set_maze(self, maze: Maze) -> None:
+        """Attach current level maze for rendering."""
+        self.maze = maze
+
+    def set_pellet_positions(self, positions: List[Position]) -> None:
+        """Set pellet positions for rendering."""
+        self.pellet_positions = positions
 
     def update_pellets(self, eaten: int, total: int) -> None:
         """Update pellet counters."""

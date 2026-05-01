@@ -58,7 +58,7 @@ class GameManager:
 
     def handle_input(self, key: int) -> None:
         """Handle raw input events."""
-        if key in (65307, ord("q")):
+        if key in (27, 65307, ord("q")):
             self.ui_manager.switch_scene("menu")
             self.loop.stop()
             return
@@ -77,7 +77,7 @@ class GameManager:
     def run(self) -> None:
         """Start a new game and run the loop."""
         logger.info("Starting game")
-        if self.ui_manager.renderer.mlx is None:
+        if self.ui_manager.renderer.is_headless():
             logger.warning(
                 "No graphics backend available: "
                 "exiting immediately in headless mode"

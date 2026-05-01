@@ -2,9 +2,7 @@
 # Python 3.10+
 
 # Graphics rendering
-# MLX42 is not available on PyPI in this environment.
-# The project runs in headless mode when MLX42 is missing.
-# MLX42==3.0.0
+pygame==2.5.2
 
 # Local wheel dependency (mandatory, installed by Makefile)
 # 4 Pacman - data.whl -> provides `mazegenerator`
