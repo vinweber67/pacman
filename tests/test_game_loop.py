@@ -77,6 +77,14 @@ class TestGameLoop:
 class TestGameManagerIntegration:
     """Game manager integration tests."""
 
+    def test_menu_navigation_with_arrow_keys(self) -> None:
+        """Arrow keys navigate menu when gameplay has not started."""
+        manager = GameManager(CONFIG)
+        menu = manager.ui_manager.current_scene
+        assert getattr(menu, "selected", None) == 0
+        manager.handle_input(65364)
+        assert getattr(menu, "selected", None) == 1
+
     def test_start_game_switches_scene(self) -> None:
         """Starting a run activates gameplay scene."""
         manager = GameManager(CONFIG)

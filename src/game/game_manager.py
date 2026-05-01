@@ -163,7 +163,10 @@ class GameManager:
             Action.MOVE_LEFT,
             Action.MOVE_RIGHT,
         }:
-            self._move_pacman(action)
+            if scene_name == "game":
+                self._move_pacman(action)
+            else:
+                self.ui_manager.handle_input(key)
             return
 
         if action == Action.PAUSE:
@@ -344,7 +347,7 @@ class GameManager:
         self.ui_manager.switch_scene("game_over")
 
     def run(self) -> None:
-        """Start a new game and run the loop."""
+        """Open the main menu and run the loop."""
         logger.info("Starting game")
         if self.ui_manager.renderer.is_headless():
             logger.warning(
@@ -353,7 +356,8 @@ class GameManager:
             )
             return
 
-        self.start_game()
+        self.ui_manager.switch_scene("menu")
+        self.loop.running = True
         self.loop.run()
 
     def finish_game(self, player_name: Optional[str] = None) -> None:

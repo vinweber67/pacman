@@ -106,3 +106,64 @@ class Renderer:
             return
         text_surface = self._font.render(text, True, color)
         self.screen.blit(text_surface, (int(x), int(y)))
+
+    def draw_circle(
+        self,
+        x: int,
+        y: int,
+        radius: int,
+        color: Tuple[int, int, int],
+        width: int = 0,
+    ) -> None:
+        """Draw a circle when backend supports it."""
+        if radius <= 0:
+            return
+        if self.screen is None or self._pygame is None:
+            return
+        self._pygame.draw.circle(
+            self.screen,
+            color,
+            (int(x), int(y)),
+            int(radius),
+            int(width),
+        )
+
+    def draw_polygon(
+        self,
+        points: list[tuple[int, int]],
+        color: Tuple[int, int, int],
+        width: int = 0,
+    ) -> None:
+        """Draw a polygon when backend supports it."""
+        if len(points) < 3:
+            return
+        if self.screen is None or self._pygame is None:
+            return
+        self._pygame.draw.polygon(
+            self.screen,
+            color,
+            [(int(px), int(py)) for px, py in points],
+            int(width),
+        )
+
+    def draw_line(
+        self,
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int,
+        color: Tuple[int, int, int],
+        width: int = 1,
+    ) -> None:
+        """Draw a line when backend supports it."""
+        if width <= 0:
+            return
+        if self.screen is None or self._pygame is None:
+            return
+        self._pygame.draw.line(
+            self.screen,
+            color,
+            (int(x1), int(y1)),
+            (int(x2), int(y2)),
+            int(width),
+        )
