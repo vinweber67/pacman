@@ -1,0 +1,22 @@
+# Pac-Man Game - Requirements
+# Python 3.10+
+
+# Graphics rendering
+MLX42==3.0.0
+
+# Maze generation (external, to be provided by another group)
+# A-Maze-ing==1.0.0  # Uncomment after receiving package
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# Code quality
+mypy==1.7.1
+flake8==6.1.0
+
+# Type checking support
+types-setuptools==69.0.0
+
+# Utilities
+dataclasses-json==0.6.3

@@ -1,0 +1,1 @@
+"""Cheat mode package."""
