@@ -16,7 +16,7 @@ from src.utils.exceptions import MazeGenerationError
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
-WHEEL_PATH = Path(__file__).resolve().parents[2] / "4 Pacman - data.whl"
+WHEEL_PATH = Path(__file__).resolve().parents[2] / "mazegenerator-00001-py3-none-any.whl"
 
 
 class MazeGenerator:

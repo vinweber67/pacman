@@ -22,6 +22,11 @@ class GameScene(Scene):
         self._anim_time = 0.0
         self._last_pacman_pos = self.state.pacman_position
         self._pacman_dir = (1, 0)
+        self._pacman_render_pos = (
+            float(self.state.pacman_position[0]),
+            float(self.state.pacman_position[1]),
+        )
+        self._ghost_render_positions: list[tuple[float, float]] = []
 
     def on_enter(self) -> None:
         """Prepare gameplay rendering state."""
@@ -34,6 +39,83 @@ class GameScene(Scene):
     def update(self, delta_time: float) -> None:
         """Update visual animation clocks."""
         self._anim_time += max(0.0, delta_time)
+        self._update_pacman_render_position(delta_time)
+        self._update_ghost_render_positions(delta_time)
+
+    def _update_pacman_render_position(self, delta_time: float) -> None:
+        """Interpolate Pac-Man render position for smoother motion."""
+        target_x, target_y = self.state.pacman_position
+        current_x, current_y = self._pacman_render_pos
+
+        # Snap immediately after teleports or large state jumps.
+        if abs(target_x - current_x) > 1.5 or abs(target_y - current_y) > 1.5:
+            self._pacman_render_pos = (float(target_x), float(target_y))
+            return
+
+        distance_x = float(target_x) - current_x
+        distance_y = float(target_y) - current_y
+        distance = math.hypot(distance_x, distance_y)
+        if distance == 0.0:
+            return
+
+        speed_multiplier = max(0.2, float(self.state.player_speed_multiplier))
+        tiles_per_second = 11.0 * speed_multiplier
+        travel = max(0.0, delta_time) * tiles_per_second
+
+        if travel >= distance:
+            self._pacman_render_pos = (float(target_x), float(target_y))
+            return
+
+        ratio = travel / distance
+        self._pacman_render_pos = (
+            current_x + distance_x * ratio,
+            current_y + distance_y * ratio,
+        )
+
+    def _update_ghost_render_positions(self, delta_time: float) -> None:
+        """Interpolate visible ghost render positions for smoother movement."""
+        target_positions = self.state.ghost_positions
+        if not target_positions:
+            self._ghost_render_positions = []
+            return
+
+        if len(self._ghost_render_positions) != len(target_positions):
+            self._ghost_render_positions = [
+                (float(x), float(y))
+                for x, y in target_positions
+            ]
+            return
+
+        tiles_per_second = 6.4
+        travel = max(0.0, delta_time) * tiles_per_second
+        next_positions: list[tuple[float, float]] = []
+
+        for current, target in zip(self._ghost_render_positions, target_positions):
+            current_x, current_y = current
+            target_x, target_y = float(target[0]), float(target[1])
+
+            # Snap on large discontinuities to avoid long lerps.
+            if abs(target_x - current_x) > 1.5 or abs(target_y - current_y) > 1.5:
+                next_positions.append((target_x, target_y))
+                continue
+
+            dx = target_x - current_x
+            dy = target_y - current_y
+            distance = math.hypot(dx, dy)
+            if distance == 0.0:
+                next_positions.append((current_x, current_y))
+                continue
+
+            if travel >= distance:
+                next_positions.append((target_x, target_y))
+                continue
+
+            ratio = travel / distance
+            next_positions.append(
+                (current_x + dx * ratio, current_y + dy * ratio)
+            )
+
+        self._ghost_render_positions = next_positions
 
     @staticmethod
     def _layout(renderer: Renderer, maze: Maze) -> tuple[int, int, int]:
@@ -235,9 +317,9 @@ class GameScene(Scene):
     ) -> None:
         """Draw Pac-Man with a simple mouth animation."""
         self._update_pacman_facing()
-        pacman_x, pacman_y = self.state.pacman_position
-        cx = offset_x + pacman_x * tile_size + tile_size // 2
-        cy = offset_y + pacman_y * tile_size + tile_size // 2
+        pacman_x, pacman_y = self._pacman_render_pos
+        cx = int(round(offset_x + pacman_x * tile_size + tile_size / 2))
+        cy = int(round(offset_y + pacman_y * tile_size + tile_size / 2))
         radius = max(4, tile_size // 2 - 1)
 
         if self.state.super_mode_time_remaining > 0.0:
@@ -289,13 +371,20 @@ class GameScene(Scene):
         ]
         frightened_blue = (40, 90, 255)
         frightened_white = (240, 240, 255)
-        for index, (ghost_x, ghost_y) in enumerate(self.state.ghost_positions):
-            gx = offset_x + ghost_x * tile_size
+        render_positions = self._ghost_render_positions
+        if len(render_positions) != len(self.state.ghost_positions):
+            render_positions = [
+                (float(x), float(y))
+                for x, y in self.state.ghost_positions
+            ]
+
+        for index, (ghost_x, ghost_y) in enumerate(render_positions):
+            gx = int(round(offset_x + ghost_x * tile_size))
             bob_offset = int(
                 math.sin(self._anim_time * 5.5 + index * 0.8)
                 * max(1, tile_size // 14)
             )
-            gy = offset_y + ghost_y * tile_size + bob_offset
+            gy = int(round(offset_y + ghost_y * tile_size)) + bob_offset
             color = ghost_colors[index % len(ghost_colors)]
             is_edible = (
                 index < len(self.state.ghost_edible_states)

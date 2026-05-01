@@ -6,6 +6,7 @@ Pac-Man is a modular Python implementation of the arcade game with configurable 
 ## Instructions
 ### Requirements
 - Python 3.10+
+- uv
 - Linux/macOS with graphical environment
 
 ### Install
@@ -13,7 +14,7 @@ Pac-Man is a modular Python implementation of the arcade game with configurable 
 
 ### Run
 - `make run`
-- Alternative: `python3 pac-man.py config.json`
+- Alternative: `uv run --python .venv/bin/python pac-man.py config.json`
 
 ### Development commands
 - `make lint`

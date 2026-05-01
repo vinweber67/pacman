@@ -15,8 +15,9 @@ class InputHandler:
     _pygame: Optional[Any] = None
     _held_direction_key: Optional[int] = None
     _next_repeat_at: float = 0.0
-    _repeat_delay: float = 0.18
-    _repeat_interval: float = 0.1
+    # Keep first held repeat aligned with the regular movement cadence.
+    _repeat_delay: float = 0.09
+    _repeat_interval: float = 0.09
 
     _pygame_direction_keys = (
         ("K_UP", 65362),
