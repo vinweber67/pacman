@@ -82,6 +82,12 @@ class GameManager:
                 if not ghost.is_respawning
             ]
         )
+        self.state.set_super_mode_time_remaining(
+            max(
+                (ghost.edible_timer for ghost in self.current_level.ghosts),
+                default=0.0,
+            )
+        )
         self._check_ghost_collisions()
 
     def _move_ghosts(self) -> None:
@@ -161,8 +167,12 @@ class GameManager:
                 self.state.resume()
                 self.ui_manager.switch_scene("game")
                 return
+            if scene_name == "game":
+                self.state.pause()
+                self.ui_manager.switch_scene("pause")
+                return
 
-        if key in (27, 65307, ord("q")):
+        if key in (ord("q"),):
             self.ui_manager.switch_scene("menu")
             self.loop.stop()
             return
@@ -237,7 +247,6 @@ class GameManager:
             elif selected_option == "Main Menu":
                 self.state.resume()
                 self.ui_manager.switch_scene("menu")
-                self.loop.stop()
 
     def _open_highscores(self) -> None:
         """Prepare and open highscores scene."""
@@ -344,6 +353,7 @@ class GameManager:
             if ghost.is_respawning:
                 continue
             ghost.become_edible(duration)
+        self.state.set_super_mode_time_remaining(duration)
 
     def _show_end_scene(self, title: str) -> None:
         """Switch to game over/victory scene without crashing loop."""

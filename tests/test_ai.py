@@ -1,5 +1,7 @@
 """Tests for ghost AI and pathfinding."""
 
+import pytest
+
 from src.entities.ai.ghost_behavior import GhostAI
 from src.entities.ai.pathfinding import Pathfinder
 from src.entities.ghost import Ghost, GhostType
@@ -60,3 +62,63 @@ class TestGhostAI:
         ghost = Ghost(GhostType.CLYDE, 1, 1)
         result = GhostAI.calculate_next_move(ghost, pacman, maze)
         assert result is not None
+
+    def test_pinky_targets_four_tiles_ahead(self) -> None:
+        """Pinky aims toward Pac-Man projected position."""
+        maze = Maze(11, 11)
+        pacman = Pacman(2, 5)
+        pacman.direction = Direction.RIGHT
+        ghost = Ghost(GhostType.PINKY, 1, 5)
+
+        result = GhostAI.calculate_next_move(ghost, pacman, maze)
+
+        assert result is not None
+        assert result[0] > ghost.x
+
+    def test_inky_can_use_random_path(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Inky can switch to random move branch."""
+        maze = Maze(7, 7)
+        pacman = Pacman(3, 3)
+        ghost = Ghost(GhostType.INKY, 1, 1)
+
+        monkeypatch.setattr(
+            "src.entities.ai.ghost_behavior.random",
+            lambda: 0.0,
+        )
+        result = GhostAI.calculate_next_move(ghost, pacman, maze)
+        assert result is not None
+
+    def test_clyde_scatters_to_spawn_when_close(self) -> None:
+        """When close to Pac-Man, Clyde heads back toward spawn corner."""
+        maze = Maze(11, 11)
+        ghost = Ghost(GhostType.CLYDE, 5, 5)
+        ghost.move_to(7, 5)
+        pacman = Pacman(8, 5)
+
+        result = GhostAI.calculate_next_move(ghost, pacman, maze)
+
+        assert result is not None
+        current_dist_spawn = Pathfinder.manhattan_distance(
+            ghost.position,
+            (ghost.spawn_x, ghost.spawn_y),
+        )
+        next_dist_spawn = Pathfinder.manhattan_distance(
+            result,
+            (ghost.spawn_x, ghost.spawn_y),
+        )
+        assert next_dist_spawn <= current_dist_spawn
+
+    def test_random_move_avoids_immediate_reverse(self) -> None:
+        """Random movement avoids immediate reverse when alternatives exist."""
+        maze = Maze(5, 5)
+        ghost = Ghost(GhostType.INKY, 2, 2)
+        ghost.last_move = (1, 0)
+
+        for _ in range(20):
+            result = GhostAI._random_move(ghost, maze)
+            assert result is not None
+            move = (result[0] - ghost.x, result[1] - ghost.y)
+            assert move != (-1, 0)

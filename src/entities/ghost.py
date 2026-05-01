@@ -30,6 +30,7 @@ class Ghost(Entity):
         self.respawn_timer: float = 0.0
         self.spawn_x: int = x
         self.spawn_y: int = y
+        self.last_move: tuple[int, int] = (0, 0)
 
     @staticmethod
     def _ghost_color(ghost_type: GhostType) -> Color:
@@ -55,6 +56,11 @@ class Ghost(Entity):
             if self.edible_timer == 0.0:
                 self.is_edible = False
 
+    def move_to(self, x: int, y: int) -> None:
+        """Move the ghost and keep track of last movement vector."""
+        self.last_move = (x - self.x, y - self.y)
+        super().move_to(x, y)
+
     def become_edible(self, duration: float) -> None:
         """Make the ghost edible for a duration."""
         self.is_edible = True
@@ -67,6 +73,7 @@ class Ghost(Entity):
         self.respawn_timer = 0.0
         self.is_edible = False
         self.edible_timer = 0.0
+        self.last_move = (0, 0)
 
     def start_respawn(self, delay: float) -> None:
         """Hide the ghost then respawn it after a delay."""
@@ -75,3 +82,4 @@ class Ghost(Entity):
         self.is_edible = False
         self.edible_timer = 0.0
         self.move_to(-1, -1)
+        self.last_move = (0, 0)

@@ -36,25 +36,43 @@ class GhostAI:
     ) -> Optional[Position]:
         """Select a target based on the ghost type."""
         if ghost.ghost_type == GhostType.BLINKY:
-            return Pathfinder.bfs(maze, ghost.position, pacman.position)
+            return GhostAI._next_step_towards(
+                ghost,
+                maze,
+                pacman.position,
+            )
 
         if ghost.ghost_type == GhostType.PINKY:
             target_x = pacman.x + 4 * pacman.direction.dx
             target_y = pacman.y + 4 * pacman.direction.dy
-            return Pathfinder.bfs(maze, ghost.position, (target_x, target_y))
+            return GhostAI._next_step_towards(
+                ghost,
+                maze,
+                (target_x, target_y),
+            )
 
         if ghost.ghost_type == GhostType.INKY:
-            if random() > 0.5:
-                return Pathfinder.bfs(maze, ghost.position, pacman.position)
+            # Inky: unpredictable mix between intercept and random motion.
+            if random() > 0.35:
+                intercept = (
+                    pacman.x + 2 * pacman.direction.dx,
+                    pacman.y + 2 * pacman.direction.dy,
+                )
+                return GhostAI._next_step_towards(ghost, maze, intercept)
             return GhostAI._random_move(ghost, maze)
 
+        # Clyde: chase when far, scatter back to home corner when close.
         distance = Pathfinder.manhattan_distance(
             ghost.position,
             pacman.position,
         )
         if distance < 8:
-            return GhostAI._random_move(ghost, maze)
-        return Pathfinder.bfs(maze, ghost.position, pacman.position)
+            return GhostAI._next_step_towards(
+                ghost,
+                maze,
+                (ghost.spawn_x, ghost.spawn_y),
+            )
+        return GhostAI._next_step_towards(ghost, maze, pacman.position)
 
     @staticmethod
     def _flee_behavior(
@@ -66,8 +84,15 @@ class GhostAI:
         neighbors = maze.get_neighbors(ghost.x, ghost.y)
         if not neighbors:
             return None
+        reverse = (-ghost.last_move[0], -ghost.last_move[1])
+        filtered = [
+            neighbor
+            for neighbor in neighbors
+            if (neighbor[0] - ghost.x, neighbor[1] - ghost.y) != reverse
+        ]
+        options = filtered or neighbors
         return max(
-            neighbors,
+            options,
             key=lambda position: Pathfinder.manhattan_distance(
                 position,
                 pacman.position,
@@ -80,4 +105,47 @@ class GhostAI:
         neighbors = maze.get_neighbors(ghost.x, ghost.y)
         if not neighbors:
             return None
-        return choice(neighbors)
+        reverse = (-ghost.last_move[0], -ghost.last_move[1])
+        filtered = [
+            neighbor
+            for neighbor in neighbors
+            if (neighbor[0] - ghost.x, neighbor[1] - ghost.y) != reverse
+        ]
+        return choice(filtered or neighbors)
+
+    @staticmethod
+    def _next_step_towards(
+        ghost: Ghost,
+        maze: Maze,
+        target: Position,
+    ) -> Optional[Position]:
+        """Return a valid step toward target with safe fallbacks."""
+        target_x = max(0, min(maze.width - 1, target[0]))
+        target_y = max(0, min(maze.height - 1, target[1]))
+        clamped_target = (target_x, target_y)
+
+        next_step = Pathfinder.bfs(maze, ghost.position, clamped_target)
+        if next_step is None and clamped_target != target:
+            next_step = Pathfinder.bfs(maze, ghost.position, target)
+
+        if next_step is None:
+            return GhostAI._random_move(ghost, maze)
+
+        reverse = (-ghost.last_move[0], -ghost.last_move[1])
+        move = (next_step[0] - ghost.x, next_step[1] - ghost.y)
+        if move == reverse:
+            alternatives = [
+                neighbor
+                for neighbor in maze.get_neighbors(ghost.x, ghost.y)
+                if (neighbor[0] - ghost.x, neighbor[1] - ghost.y) != reverse
+            ]
+            if alternatives:
+                return min(
+                    alternatives,
+                    key=lambda position: Pathfinder.manhattan_distance(
+                        position,
+                        clamped_target,
+                    ),
+                )
+
+        return next_step

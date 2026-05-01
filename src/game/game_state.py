@@ -31,6 +31,7 @@ class GameState:
     is_invincible: bool = False
     are_ghosts_frozen: bool = False
     player_speed_multiplier: float = 1.0
+    super_mode_time_remaining: float = 0.0
 
     # Entity positions
     pacman_position: Position = (10, 10)
@@ -68,6 +69,7 @@ class GameState:
         self.is_invincible = False
         self.are_ghosts_frozen = False
         self.player_speed_multiplier = 1.0
+        self.super_mode_time_remaining = 0.0
         self.pacman_position = (10, 10)
         self.ghost_positions = []
         self.maze = None
@@ -90,6 +92,7 @@ class GameState:
         self.is_invincible = False
         self.are_ghosts_frozen = False
         self.player_speed_multiplier = 1.0
+        self.super_mode_time_remaining = 0.0
         self.pacman_position = (10, 10)
         self.ghost_positions = []
         self.maze = None
@@ -143,6 +146,10 @@ class GameState:
         self.pellets_eaten = eaten
         self.pellets_total = total
 
+    def set_super_mode_time_remaining(self, seconds: float) -> None:
+        """Update remaining super mode time in seconds."""
+        self.super_mode_time_remaining = max(0.0, float(seconds))
+
     def pause(self) -> None:
         """Pause the game."""
         self.is_paused = True
@@ -171,6 +178,7 @@ class GameState:
             "is_game_over": self.is_game_over,
             "is_victory": self.is_victory,
             "pellets_progress": f"{self.pellets_eaten}/{self.pellets_total}",
+            "super_mode_time_remaining": self.super_mode_time_remaining,
         }
 
     def __repr__(self) -> str:

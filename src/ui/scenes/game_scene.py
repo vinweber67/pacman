@@ -315,6 +315,16 @@ class GameScene(Scene):
             f"Time:{self.state.level_time_remaining}"
         )
         renderer.draw_text(12, 10, hud_text, (240, 240, 255))
+        if self.state.super_mode_time_remaining > 0.0:
+            renderer.draw_text(
+                540,
+                10,
+                (
+                    "POWER: "
+                    f"{self.state.super_mode_time_remaining:.1f}s"
+                ),
+                (150, 220, 255),
+            )
         renderer.draw_text(
             12,
             28,

@@ -23,6 +23,7 @@ class ConfigValidator:
             {"width": 21, "height": 21, "seed": 42, "max_time": 90}
         ]
     }
+    SUPPORTED_KEYS: set[str] = set(DEFAULT_CONFIG.keys())
 
     @staticmethod
     def validate(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -39,9 +40,13 @@ class ConfigValidator:
             logger.warning("Config is not a dict, using defaults")
             return ConfigValidator.DEFAULT_CONFIG.copy()
 
-        # Merge with defaults (config values override defaults)
+        # Merge with defaults while ignoring unsupported keys.
         validated = ConfigValidator.DEFAULT_CONFIG.copy()
-        validated.update(config)
+        for key, value in config.items():
+            if key not in ConfigValidator.SUPPORTED_KEYS:
+                logger.warning("Ignoring unsupported config key: %s", key)
+                continue
+            validated[key] = value
 
         # Validate values
         ConfigValidator._validate_values(validated)

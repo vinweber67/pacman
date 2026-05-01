@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import random
 from typing import Any, Optional
 
 from src.entities.ghost import Ghost
@@ -32,6 +33,7 @@ class LevelManager:
         self.state = GameState()
         self.levels = config.get("levels", [])
         self.current_level_data: Optional[LevelData] = None
+        self._resolved_level_seeds: dict[int, int] = {}
 
     def load_level(self, level_number: int) -> LevelData:
         """Load the requested level and update the game state."""
@@ -43,7 +45,7 @@ class LevelManager:
         level_config = self.levels[index]
         width = int(level_config.get("width", 21))
         height = int(level_config.get("height", 21))
-        seed = int(level_config.get("seed", 0))
+        seed = self._resolve_level_seed(level_number, level_config)
         max_time = int(level_config.get("max_time", DEFAULT_LEVEL_TIME))
 
         maze = MazeGenerator.generate(width, height, seed)
@@ -59,6 +61,7 @@ class LevelManager:
 
         self.state.current_level = level_number
         self.state.level_time_remaining = max_time
+        self.state.set_super_mode_time_remaining(0.0)
         self.state.lives = self.state.lives or DEFAULT_LIVES
         self.state.set_maze(maze)
         self.state.set_pacman_position(pacman.x, pacman.y)
@@ -86,6 +89,27 @@ class LevelManager:
             pellets=pellets,
         )
         return self.current_level_data
+
+    def _resolve_level_seed(
+        self,
+        level_number: int,
+        level_config: dict[str, Any],
+    ) -> int:
+        """Resolve effective maze seed for a level."""
+        if level_number == 1:
+            return int(level_config.get("seed", 42))
+
+        if level_number not in self._resolved_level_seeds:
+            self._resolved_level_seeds[level_number] = (
+                self._create_random_seed()
+            )
+
+        return self._resolved_level_seeds[level_number]
+
+    @staticmethod
+    def _create_random_seed() -> int:
+        """Create a positive random seed."""
+        return random.SystemRandom().randint(1, 2_147_483_647)
 
     def advance_level(self) -> LevelData:
         """Advance to the next level."""

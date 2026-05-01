@@ -34,6 +34,15 @@ Main keys:
 - `ghost_respawn_time`
 - `super_pacgum_duration`
 
+Seed behavior:
+- Level 1 uses configured fixed seed (default `42`)
+- Levels 2+ are generated with random seeds per run
+
+Timer behavior:
+- If `max_time` reaches `0`, the player loses one life
+- If lives remain, the current level restarts
+- If no life remains, the game ends
+
 See [config.json](config.json) for the full default example.
 
 ## Highscore

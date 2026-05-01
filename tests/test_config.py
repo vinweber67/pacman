@@ -146,6 +146,17 @@ class TestConfigValidator:
 
         assert len(validated["levels"]) > 0  # Default
 
+    def test_validate_ignores_unknown_keys(self) -> None:
+        """Unknown top-level config keys are ignored safely."""
+        config: dict[str, Any] = {
+            "lives": 4,
+            "unexpected_option": "value",
+        }
+        validated: dict[str, Any] = ConfigValidator.validate(config)
+
+        assert validated["lives"] == 4
+        assert "unexpected_option" not in validated
+
     def test_validate_level_with_missing_keys(self) -> None:
         """Test level validation with missing keys."""
         level = {"width": 21, "height": 21}  # Missing seed and max_time

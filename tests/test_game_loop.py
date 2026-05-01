@@ -1,11 +1,15 @@
 """Tests for game loop and level progression."""
 
+import pytest
+
 from src.entities.pellet import Pellet
 from src.game.game_loop import GameLoop
 from src.game.game_manager import GameManager
 from src.game.game_state import GameState
 from src.game.level_manager import LevelManager
 from src.input.key_bindings import Action
+from src.maze.maze import Maze
+from src.maze.maze_generator import MazeGenerator
 
 
 CONFIG = {
@@ -41,6 +45,36 @@ class TestLevelManager:
         next_level = manager.advance_level()
         assert state.current_level == 2
         assert next_level.maze.width == 9
+
+    def test_level_one_fixed_seed_and_following_levels_random(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Level 1 keeps configured seed, level 2+ resolves random seed."""
+        generated_seeds: list[int] = []
+
+        def fake_generate(width: int, height: int, seed: int) -> Maze:
+            generated_seeds.append(seed)
+            return Maze(width, height)
+
+        monkeypatch.setattr(
+            MazeGenerator,
+            "generate",
+            staticmethod(fake_generate),
+        )
+        monkeypatch.setattr(
+            LevelManager,
+            "_create_random_seed",
+            staticmethod(lambda: 1337),
+        )
+
+        state = GameState()
+        state.reset()
+        manager = LevelManager(CONFIG)
+        manager.load_level(1)
+        manager.advance_level()
+
+        assert generated_seeds == [42, 1337]
 
 
 class TestGameLoop:
@@ -112,10 +146,10 @@ class TestGameManagerIntegration:
         """Finishing a game writes a score entry."""
         manager = GameManager(CONFIG)
         manager.start_game()
-        manager.state.score = 123
+        manager.state.score = 999999
         manager.finish_game("ALICE")
         assert any(
-            entry.name == "ALICE" and entry.score == 123
+            entry.name == "ALICE" and entry.score == 999999
             for entry in manager.highscore_manager.scores
         )
 
@@ -147,7 +181,10 @@ class TestGameManagerIntegration:
         assert neighbors
         target = neighbors[0]
 
-        level.pellets = [Pellet(target[0], target[1], is_super=True)]
+        level.pellets = [
+            Pellet(target[0], target[1], is_super=True),
+            Pellet(pacman.x, pacman.y + 2),
+        ]
         previous_score = manager.state.score
         if target[0] > pacman.x:
             action = Action.MOVE_RIGHT
@@ -163,6 +200,21 @@ class TestGameManagerIntegration:
             previous_score + 50
         )
         assert all(ghost.is_edible for ghost in level.ghosts)
+        assert manager.state.super_mode_time_remaining > 0.0
+
+    def test_super_mode_timer_counts_down(self) -> None:
+        """Super mode timer should decrease as gameplay updates."""
+        manager = GameManager(CONFIG)
+        manager.start_game()
+        assert manager.current_level is not None
+
+        level = manager.current_level
+        for ghost in level.ghosts:
+            ghost.become_edible(1.5)
+        manager.state.set_super_mode_time_remaining(1.5)
+
+        manager.update(0.5)
+        assert 0.9 <= manager.state.super_mode_time_remaining <= 1.1
 
     def test_edible_ghost_collision_respawns(self) -> None:
         """Colliding with edible ghost awards score and triggers respawn."""

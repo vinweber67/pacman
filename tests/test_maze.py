@@ -57,6 +57,23 @@ class TestMazeGenerator:
         assert any(pellet.is_super for pellet in pellets)
         assert all(maze.is_walkable(pellet.x, pellet.y) for pellet in pellets)
 
+    def test_super_pellets_are_on_inner_corners(self) -> None:
+        """Super pellets should occupy the four classic inner corners."""
+        maze = MazeGenerator.generate(7, 7, 42)
+        pellets = MazeGenerator.place_pellets(maze, {"pacgum_count": 8})
+
+        super_positions = {
+            pellet.position
+            for pellet in pellets
+            if pellet.is_super
+        }
+        assert super_positions == {
+            (1, 1),
+            (maze.width - 2, 1),
+            (1, maze.height - 2),
+            (maze.width - 2, maze.height - 2),
+        }
+
     def test_place_ghosts(self) -> None:
         """Ghost placement returns the four classic ghosts when possible."""
         maze = MazeGenerator.generate(7, 7, 42)
