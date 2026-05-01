@@ -3,6 +3,7 @@
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -117,8 +118,8 @@ class TestConfigValidator:
 
     def test_validate_invalid_type(self) -> None:
         """Test validation with invalid type."""
-        config = "not a dict"  # type: ignore
-        validated = ConfigValidator.validate(config)
+        config_invalid: Any = "not a dict"
+        validated: dict[str, Any] = ConfigValidator.validate(config_invalid)
 
         # Should use defaults
         assert validated["lives"] == 3
@@ -126,22 +127,22 @@ class TestConfigValidator:
 
     def test_validate_invalid_lives(self) -> None:
         """Test validation with invalid lives."""
-        config = {"lives": -1}
-        validated = ConfigValidator.validate(config)
+        config: dict[str, Any] = {"lives": -1}
+        validated: dict[str, Any] = ConfigValidator.validate(config)
 
         assert validated["lives"] == 3  # Default
 
     def test_validate_invalid_points(self) -> None:
         """Test validation with invalid points."""
-        config = {"points_per_pacgum": -10}
-        validated = ConfigValidator.validate(config)
+        config: dict[str, Any] = {"points_per_pacgum": -10}
+        validated: dict[str, Any] = ConfigValidator.validate(config)
 
         assert validated["points_per_pacgum"] == 10  # Default
 
     def test_validate_invalid_levels(self) -> None:
         """Test validation with invalid levels."""
-        config = {"levels": []}
-        validated = ConfigValidator.validate(config)
+        config: dict[str, Any] = {"levels": []}
+        validated: dict[str, Any] = ConfigValidator.validate(config)
 
         assert len(validated["levels"]) > 0  # Default
 

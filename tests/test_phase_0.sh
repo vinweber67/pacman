@@ -2,7 +2,8 @@
 # Pac-Man Phase 0 - Test Suite
 # Complete testing guide for infrastructure validation
 
-set -e  # Exit on first error
+# Don't exit on first error - we want to run all tests
+set +e
 
 echo "================================"
 echo "Pac-Man Phase 0 - Test Suite"
@@ -134,9 +135,9 @@ run_test "Error code 1 on invalid JSON" "python3 pac-man.py /tmp/invalid.json > 
 echo -e "${YELLOW}=== SECTION 8: Configuration Loading ===${NC}"
 echo ""
 
-run_test "Config has required keys" "python3 -c \"import json; c=json.load(open('config.json')); assert 'levels' in c and 'lives' in c\""
-run_test "Config has 10 levels" "python3 -c \"import json; c=json.load(open('config.json')); assert len(c['levels']) >= 10\""
-run_test "First level has seed 42" "python3 -c \"import json; c=json.load(open('config.json')); assert c['levels'][0]['seed'] == 42\""
+run_test "Config has required keys" "python3 -c \"from src.config.config_loader import ConfigLoader; c=ConfigLoader.load('config.json'); assert 'levels' in c and 'lives' in c\""
+run_test "Config has 10 levels" "python3 -c \"from src.config.config_loader import ConfigLoader; c=ConfigLoader.load('config.json'); assert len(c['levels']) >= 10\""
+run_test "First level has seed 42" "python3 -c \"from src.config.config_loader import ConfigLoader; c=ConfigLoader.load('config.json'); assert c['levels'][0]['seed'] == 42\""
 
 # ============================================================================
 # SECTION 9: Unit Tests
