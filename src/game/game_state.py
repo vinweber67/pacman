@@ -25,6 +25,9 @@ class GameState:
     is_paused: bool = False
     is_game_over: bool = False
     is_victory: bool = False
+    is_invincible: bool = False
+    are_ghosts_frozen: bool = False
+    player_speed_multiplier: float = 1.0
 
     # Entity positions
     pacman_position: Position = (10, 10)
@@ -56,6 +59,9 @@ class GameState:
         self.is_paused = False
         self.is_game_over = False
         self.is_victory = False
+        self.is_invincible = False
+        self.are_ghosts_frozen = False
+        self.player_speed_multiplier = 1.0
         self.pacman_position = (10, 10)
         self.ghost_positions = []
         self.pellets_eaten = 0
@@ -72,6 +78,9 @@ class GameState:
         self.is_paused = False
         self.is_game_over = False
         self.is_victory = False
+        self.is_invincible = False
+        self.are_ghosts_frozen = False
+        self.player_speed_multiplier = 1.0
         self.pacman_position = (10, 10)
         self.ghost_positions = []
         self.pellets_eaten = 0
