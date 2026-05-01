@@ -26,7 +26,7 @@ install:
 	$(UV_PIP) "$$tmp_wheel"; \
 	$(UV_PIP) -e ".[dev]"
 
-run:
+run: install
 	$(UV_RUN) pac-man.py config.json
 
 debug:
