@@ -46,8 +46,7 @@ class GameManager:
         """Handle a timeout by consuming a life or ending the game."""
         self.state.lose_life()
         if self.state.is_game_over:
-            self.ui_manager.switch_scene("menu")
-            self.loop.stop()
+            self._show_end_scene("GAME OVER")
             return
         self.current_level = self.level_manager.load_level(
             self.state.current_level,

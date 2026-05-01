@@ -47,10 +47,6 @@ class GameLoop:
         if not self.running:
             self.running = True
 
-        if self.state.is_game_over or self.state.is_victory:
-            self.running = False
-            return
-
         keys = keys or InputHandler.poll_events()
         for key in keys:
             self.game_manager.handle_input(key)

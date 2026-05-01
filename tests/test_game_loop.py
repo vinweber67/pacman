@@ -1,6 +1,7 @@
 """Tests for game loop and level progression."""
 
 from pathlib import Path
+import tempfile
 
 import pytest
 
@@ -18,7 +19,9 @@ from src.maze.maze_generator import MazeGenerator
 
 
 CONFIG = {
-    "highscore_filename": ".data/highscores.json",
+    "highscore_filename": str(
+        Path(tempfile.gettempdir()) / "pacman-test-highscores.json"
+    ),
     "levels": [
         {"width": 7, "height": 7, "seed": 42, "max_time": 12},
         {"width": 9, "height": 9, "seed": 7, "max_time": 15},
@@ -150,6 +153,33 @@ class TestGameLoop:
         loop = GameLoop(manager)
         loop.step(1.0, keys=[])
         assert state.lives == 2
+
+    def test_game_over_does_not_stop_loop_immediately(self) -> None:
+        """A game-over state should keep the UI alive on the end scene."""
+        manager = GameManager(CONFIG)
+        manager.start_game()
+        state = GameState()
+        state.is_game_over = True
+        manager.ui_manager.switch_scene("game_over")
+        loop = GameLoop(manager)
+
+        loop.step(0.016, keys=[])
+
+        assert loop.running is True
+
+    def test_timeout_game_over_shows_end_scene(self) -> None:
+        """Timing out on the last life should show the game-over scene."""
+        manager = GameManager(CONFIG)
+        manager.start_game()
+        state = GameState()
+        state.lives = 1
+        state.level_time_remaining = 1
+        loop = GameLoop(manager)
+
+        loop.step(1.0, keys=[])
+
+        assert manager.ui_manager.current_scene_name == "game_over"
+        assert loop.running is True
 
     def test_short_timer_restarts_same_level(self) -> None:
         """A very short timer should restart the current level after timeout."""
