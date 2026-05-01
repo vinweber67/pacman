@@ -59,14 +59,15 @@ class GameLoop:
             self.game_manager.render()
             return
 
-        self._elapsed_time += delta_time
-        if self._elapsed_time >= 1.0:
-            elapsed_seconds = int(self._elapsed_time)
-            self._elapsed_time -= elapsed_seconds
-            self.state.level_time_remaining = max(
-                0,
-                self.state.level_time_remaining - elapsed_seconds,
-            )
+        if not self.state.no_time_limit:
+            self._elapsed_time += delta_time
+            if self._elapsed_time >= 1.0:
+                elapsed_seconds = int(self._elapsed_time)
+                self._elapsed_time -= elapsed_seconds
+                self.state.level_time_remaining = max(
+                    0,
+                    self.state.level_time_remaining - elapsed_seconds,
+                )
 
         self.game_manager.update(delta_time)
         self.game_manager.render()

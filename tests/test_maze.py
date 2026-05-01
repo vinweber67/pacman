@@ -1,9 +1,12 @@
 """Tests for maze structures and generation."""
 
+import pytest
+
 from src.entities.ghost import GhostType
 from src.maze.maze import Maze
 from src.maze.maze_generator import MazeGenerator
 from src.maze.tile import TileType
+from src.utils.exceptions import MazeGenerationError
 
 
 class TestMaze:
@@ -43,11 +46,11 @@ class TestMaze:
 class TestMazeGenerator:
     """Maze generation tests."""
 
-    def test_generate_creates_borders(self) -> None:
-        """Generated maze has border walls."""
+    def test_generate_preserves_walkable_outer_row(self) -> None:
+        """Generated mazes keep the generator's outer cells playable."""
         maze = MazeGenerator.generate(7, 7, 42)
-        assert maze.tiles[0][0] == TileType.WALL
-        assert maze.tiles[6][6] == TileType.WALL
+        assert maze.is_walkable(0, 0) is True
+        assert maze.is_walkable(6, 6) is True
 
     def test_place_pellets(self) -> None:
         """Pellet placement returns pellets on walkable tiles."""
@@ -57,8 +60,8 @@ class TestMazeGenerator:
         assert any(pellet.is_super for pellet in pellets)
         assert all(maze.is_walkable(pellet.x, pellet.y) for pellet in pellets)
 
-    def test_super_pellets_are_on_inner_corners(self) -> None:
-        """Super pellets should occupy the four classic inner corners."""
+    def test_super_pellets_are_on_maze_corners(self) -> None:
+        """Super pellets should occupy the four maze corners."""
         maze = MazeGenerator.generate(7, 7, 42)
         pellets = MazeGenerator.place_pellets(maze, {"pacgum_count": 8})
 
@@ -67,12 +70,7 @@ class TestMazeGenerator:
             for pellet in pellets
             if pellet.is_super
         }
-        assert super_positions == {
-            (1, 1),
-            (maze.width - 2, 1),
-            (1, maze.height - 2),
-            (maze.width - 2, maze.height - 2),
-        }
+        assert super_positions == set(maze.get_corners())
 
     def test_place_ghosts(self) -> None:
         """Ghost placement returns the four classic ghosts when possible."""
@@ -83,3 +81,40 @@ class TestMazeGenerator:
         assert ghosts[1].ghost_type == GhostType.PINKY
         assert ghosts[2].ghost_type == GhostType.INKY
         assert ghosts[3].ghost_type == GhostType.CLYDE
+
+    def test_ghosts_do_not_spawn_on_super_pellets(self) -> None:
+        """Ghost spawns must stay distinct from power-pellet corners."""
+        maze = MazeGenerator.generate(7, 7, 42)
+        ghosts = MazeGenerator.place_ghosts(maze)
+        pellets = MazeGenerator.place_pellets(maze, {"pacgum_count": 8})
+
+        ghost_positions = {ghost.position for ghost in ghosts}
+        super_positions = {
+            pellet.position
+            for pellet in pellets
+            if pellet.is_super
+        }
+
+        assert ghost_positions.isdisjoint(super_positions)
+
+    def test_generate_uses_fallback_when_wheel_fails(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Generation must not crash when wheel fails and should stay playable."""
+
+        def fail_wheel(width: int, height: int, seed: int) -> list[list[int]]:
+            raise MazeGenerationError("forced test failure")
+
+        monkeypatch.setattr(
+            MazeGenerator,
+            "_generate_from_wheel",
+            staticmethod(fail_wheel),
+        )
+
+        maze = MazeGenerator.generate(9, 9, 42)
+        center = maze.get_center()
+        assert maze.width == 9
+        assert maze.height == 9
+        assert maze.is_walkable(*center) is True
+        assert maze.is_walkable(1, 1) is True

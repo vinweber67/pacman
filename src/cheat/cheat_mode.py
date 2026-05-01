@@ -63,3 +63,24 @@ class CheatMode:
             "Cheat speed multiplier: x%s",
             new_multiplier,
         )
+
+    @staticmethod
+    def toggle_no_time_limit(state: GameState) -> None:
+        """Toggle no-time-limit mode for the current run."""
+        new_value = not bool(getattr(state, "no_time_limit", False))
+        setattr(state, "no_time_limit", new_value)
+        logger.info("Cheat no time limit: %s", new_value)
+
+    @staticmethod
+    def toggle_show_all_paths(state: GameState) -> None:
+        """Toggle path visualization for ghosts."""
+        new_value = not bool(getattr(state, "show_all_paths", False))
+        setattr(state, "show_all_paths", new_value)
+        logger.info("Cheat show all paths: %s", new_value)
+
+    @staticmethod
+    def toggle_overlay(state: GameState) -> None:
+        """Toggle the in-game cheat help overlay."""
+        new_value = not bool(getattr(state, "cheat_overlay_visible", True))
+        setattr(state, "cheat_overlay_visible", new_value)
+        logger.info("Cheat overlay visible: %s", new_value)

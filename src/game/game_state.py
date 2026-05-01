@@ -30,12 +30,17 @@ class GameState:
     is_victory: bool = False
     is_invincible: bool = False
     are_ghosts_frozen: bool = False
+    no_time_limit: bool = False
     player_speed_multiplier: float = 1.0
     super_mode_time_remaining: float = 0.0
+    cheat_overlay_visible: bool = True
+    show_all_paths: bool = False
 
     # Entity positions
     pacman_position: Position = (10, 10)
     ghost_positions: List[Position] = field(default_factory=list)
+    ghost_edible_states: List[bool] = field(default_factory=list)
+    ghost_path_overlays: List[List[Position]] = field(default_factory=list)
     maze: Optional[Maze] = None
     pellet_positions: List[Position] = field(default_factory=list)
     super_pellet_positions: List[Position] = field(default_factory=list)
@@ -68,10 +73,15 @@ class GameState:
         self.is_victory = False
         self.is_invincible = False
         self.are_ghosts_frozen = False
+        self.no_time_limit = False
         self.player_speed_multiplier = 1.0
         self.super_mode_time_remaining = 0.0
+        self.cheat_overlay_visible = True
+        self.show_all_paths = False
         self.pacman_position = (10, 10)
         self.ghost_positions = []
+        self.ghost_edible_states = []
+        self.ghost_path_overlays = []
         self.maze = None
         self.pellet_positions = []
         self.super_pellet_positions = []
@@ -91,10 +101,15 @@ class GameState:
         self.is_victory = False
         self.is_invincible = False
         self.are_ghosts_frozen = False
+        self.no_time_limit = False
         self.player_speed_multiplier = 1.0
         self.super_mode_time_remaining = 0.0
+        self.cheat_overlay_visible = True
+        self.show_all_paths = False
         self.pacman_position = (10, 10)
         self.ghost_positions = []
+        self.ghost_edible_states = []
+        self.ghost_path_overlays = []
         self.maze = None
         self.pellet_positions = []
         self.super_pellet_positions = []
@@ -129,6 +144,10 @@ class GameState:
         """Set all ghost positions."""
         self.ghost_positions = positions
 
+    def set_ghost_edible_states(self, states: List[bool]) -> None:
+        """Set whether each rendered ghost is currently edible."""
+        self.ghost_edible_states = states
+
     def set_maze(self, maze: Maze) -> None:
         """Attach current level maze for rendering."""
         self.maze = maze
@@ -149,6 +168,10 @@ class GameState:
     def set_super_mode_time_remaining(self, seconds: float) -> None:
         """Update remaining super mode time in seconds."""
         self.super_mode_time_remaining = max(0.0, float(seconds))
+
+    def set_ghost_path_overlays(self, paths: List[List[Position]]) -> None:
+        """Store path overlays used by the cheat visualization."""
+        self.ghost_path_overlays = paths
 
     def pause(self) -> None:
         """Pause the game."""
@@ -177,6 +200,9 @@ class GameState:
             "is_paused": self.is_paused,
             "is_game_over": self.is_game_over,
             "is_victory": self.is_victory,
+            "no_time_limit": self.no_time_limit,
+            "cheat_overlay_visible": self.cheat_overlay_visible,
+            "show_all_paths": self.show_all_paths,
             "pellets_progress": f"{self.pellets_eaten}/{self.pellets_total}",
             "super_mode_time_remaining": self.super_mode_time_remaining,
         }

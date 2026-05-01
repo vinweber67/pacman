@@ -32,6 +32,20 @@ class Renderer:
         try:
             os.environ.setdefault("SDL_RENDER_DRIVER", "software")
             self._pygame = import_module("pygame")
+        except ImportError as error:
+            self._pygame = None
+            self.screen = None
+            self._font = None
+            self._backend = "headless"
+            logger.warning(
+                "Unable to start pygame backend (%s), running headless",
+                error,
+            )
+            return
+
+        pygame_error = getattr(self._pygame, "error", RuntimeError)
+
+        try:
             self._pygame.init()
             self._pygame.font.init()
             self.screen = self._pygame.display.set_mode((width, height))
@@ -39,7 +53,7 @@ class Renderer:
             self._font = self._pygame.font.SysFont("Arial", 20)
             self._backend = "pygame"
             logger.info("Using pygame backend")
-        except Exception as error:
+        except (AttributeError, OSError, RuntimeError, pygame_error) as error:  # type: ignore[misc]
             self._pygame = None
             self.screen = None
             self._font = None

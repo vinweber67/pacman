@@ -16,17 +16,69 @@ class GhostAI:
     """Behavior helpers for ghosts."""
 
     @staticmethod
+    def calculate_path(
+        ghost: Ghost,
+        pacman: Pacman,
+        maze: Maze,
+    ) -> list[Position]:
+        """Return the currently intended path for a ghost."""
+        if ghost.is_respawning:
+            return []
+        if ghost.is_edible:
+            next_step = GhostAI._flee_behavior(ghost, pacman, maze)
+            return GhostAI._as_path(ghost.position, next_step)
+        return GhostAI._chase_path(ghost, pacman, maze)
+
+    @staticmethod
     def calculate_next_move(
         ghost: Ghost,
         pacman: Pacman,
         maze: Maze,
     ) -> Optional[Position]:
         """Choose the next target tile for a ghost."""
-        if ghost.is_respawning:
+        path = GhostAI.calculate_path(ghost, pacman, maze)
+        if len(path) < 2:
             return None
-        if ghost.is_edible:
-            return GhostAI._flee_behavior(ghost, pacman, maze)
-        return GhostAI._chase_behavior(ghost, pacman, maze)
+        return path[1]
+
+    @staticmethod
+    def _chase_path(
+        ghost: Ghost,
+        pacman: Pacman,
+        maze: Maze,
+    ) -> list[Position]:
+        """Return the intended chase path based on ghost archetype."""
+        if ghost.ghost_type == GhostType.BLINKY:
+            return GhostAI._path_towards(ghost, maze, pacman.position)
+
+        if ghost.ghost_type == GhostType.PINKY:
+            target_x = pacman.x + 4 * pacman.direction.dx
+            target_y = pacman.y + 4 * pacman.direction.dy
+            return GhostAI._path_towards(ghost, maze, (target_x, target_y))
+
+        if ghost.ghost_type == GhostType.INKY:
+            if random() > 0.35:
+                intercept = (
+                    pacman.x + 2 * pacman.direction.dx,
+                    pacman.y + 2 * pacman.direction.dy,
+                )
+                return GhostAI._path_towards(ghost, maze, intercept)
+            return GhostAI._as_path(
+                ghost.position,
+                GhostAI._random_move(ghost, maze),
+            )
+
+        distance = Pathfinder.manhattan_distance(
+            ghost.position,
+            pacman.position,
+        )
+        if distance < 8:
+            return GhostAI._path_towards(
+                ghost,
+                maze,
+                (ghost.spawn_x, ghost.spawn_y),
+            )
+        return GhostAI._path_towards(ghost, maze, pacman.position)
 
     @staticmethod
     def _chase_behavior(
@@ -35,44 +87,10 @@ class GhostAI:
         maze: Maze,
     ) -> Optional[Position]:
         """Select a target based on the ghost type."""
-        if ghost.ghost_type == GhostType.BLINKY:
-            return GhostAI._next_step_towards(
-                ghost,
-                maze,
-                pacman.position,
-            )
-
-        if ghost.ghost_type == GhostType.PINKY:
-            target_x = pacman.x + 4 * pacman.direction.dx
-            target_y = pacman.y + 4 * pacman.direction.dy
-            return GhostAI._next_step_towards(
-                ghost,
-                maze,
-                (target_x, target_y),
-            )
-
-        if ghost.ghost_type == GhostType.INKY:
-            # Inky: unpredictable mix between intercept and random motion.
-            if random() > 0.35:
-                intercept = (
-                    pacman.x + 2 * pacman.direction.dx,
-                    pacman.y + 2 * pacman.direction.dy,
-                )
-                return GhostAI._next_step_towards(ghost, maze, intercept)
-            return GhostAI._random_move(ghost, maze)
-
-        # Clyde: chase when far, scatter back to home corner when close.
-        distance = Pathfinder.manhattan_distance(
-            ghost.position,
-            pacman.position,
-        )
-        if distance < 8:
-            return GhostAI._next_step_towards(
-                ghost,
-                maze,
-                (ghost.spawn_x, ghost.spawn_y),
-            )
-        return GhostAI._next_step_towards(ghost, maze, pacman.position)
+        path = GhostAI._chase_path(ghost, pacman, maze)
+        if len(path) < 2:
+            return None
+        return path[1]
 
     @staticmethod
     def _flee_behavior(
@@ -149,3 +167,56 @@ class GhostAI:
                 )
 
         return next_step
+
+    @staticmethod
+    def _path_towards(
+        ghost: Ghost,
+        maze: Maze,
+        target: Position,
+    ) -> list[Position]:
+        """Return a valid path toward target with safe fallbacks."""
+        target_x = max(0, min(maze.width - 1, target[0]))
+        target_y = max(0, min(maze.height - 1, target[1]))
+        clamped_target = (target_x, target_y)
+
+        path = Pathfinder.bfs_path(maze, ghost.position, clamped_target)
+        if not path and clamped_target != target:
+            path = Pathfinder.bfs_path(maze, ghost.position, target)
+
+        if not path:
+            return GhostAI._as_path(
+                ghost.position,
+                GhostAI._random_move(ghost, maze),
+            )
+
+        if len(path) >= 2:
+            reverse = (-ghost.last_move[0], -ghost.last_move[1])
+            move = (path[1][0] - ghost.x, path[1][1] - ghost.y)
+            if move == reverse:
+                alternatives = [
+                    neighbor
+                    for neighbor in maze.get_neighbors(ghost.x, ghost.y)
+                    if (neighbor[0] - ghost.x, neighbor[1] - ghost.y)
+                    != reverse
+                ]
+                if alternatives:
+                    next_step = min(
+                        alternatives,
+                        key=lambda position: Pathfinder.manhattan_distance(
+                            position,
+                            clamped_target,
+                        ),
+                    )
+                    return [ghost.position, next_step]
+
+        return path
+
+    @staticmethod
+    def _as_path(
+        start: Position,
+        next_step: Optional[Position],
+    ) -> list[Position]:
+        """Convert a start and next step into a simple path."""
+        if next_step is None:
+            return []
+        return [start, next_step]

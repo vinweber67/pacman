@@ -26,9 +26,20 @@ class MazeGenerator:
 
     @staticmethod
     def generate(width: int, height: int, seed: int) -> Maze:
-        """Generate a maze strictly from the local wheel package."""
-        external_maze = MazeGenerator._generate_from_wheel(width, height, seed)
-        return MazeGenerator._convert_external_maze(external_maze)
+        """Generate a maze from wheel package with a safe local fallback."""
+        try:
+            external_maze = MazeGenerator._generate_from_wheel(
+                width,
+                height,
+                seed,
+            )
+            return MazeGenerator._convert_external_maze(external_maze)
+        except MazeGenerationError as error:
+            logger.warning(
+                "Wheel maze generation failed (%s), using fallback maze",
+                error,
+            )
+            return MazeGenerator._generate_fallback_maze(width, height)
 
     @staticmethod
     def _generate_from_wheel(
@@ -60,7 +71,7 @@ class MazeGenerator:
                 height,
                 seed,
             )
-        except Exception as error:
+        except (ImportError, AttributeError, OSError, TypeError, ValueError) as error:
             raise MazeGenerationError(
                 f"Unable to load maze from wheel: {error}"
             ) from error
@@ -98,7 +109,7 @@ class MazeGenerator:
             generator._add_42_to_maze()
             generator._generate_maze(generator._entryx, generator._entryy, 0)
             return cast(list[list[int]], generator.maze)
-        except Exception:
+        except (AttributeError, TypeError, ValueError):
             fallback = external_class(
                 size=(width, height),
                 perfect=False,
@@ -120,17 +131,48 @@ class MazeGenerator:
                     TileType.WALL if cell == 15 else TileType.CORRIDOR
                 )
 
+        MazeGenerator._open_spawn_points(maze)
+        return maze
+
+    @staticmethod
+    def _generate_fallback_maze(width: int, height: int) -> Maze:
+        """Generate a deterministic, playable local fallback maze."""
+        safe_width = max(5, int(width))
+        safe_height = max(5, int(height))
+        maze = Maze(safe_width, safe_height)
+
+        # Add border walls first.
         MazeGenerator._add_border_walls(maze)
+
+        # Add sparse interior pillars while keeping corridors connected.
+        for y in range(2, maze.height - 2, 2):
+            for x in range(2, maze.width - 2, 4):
+                if (x, y) == maze.get_center():
+                    continue
+                maze.tiles[y][x] = TileType.WALL
+
+        # Keep gameplay-critical cells walkable.
+        center_x, center_y = maze.get_center()
+        maze.tiles[center_y][center_x] = TileType.CORRIDOR
         MazeGenerator._open_spawn_points(maze)
         return maze
 
     @staticmethod
     def _open_spawn_points(maze: Maze) -> None:
         """Ensure the ghost spawn points remain walkable."""
-        for x, y in ((1, 1), (maze.width - 2, 1), (1, maze.height - 2),
-                     (maze.width - 2, maze.height - 2)):
+        for x, y in MazeGenerator._get_ghost_spawn_points(maze):
             if 0 <= x < maze.width and 0 <= y < maze.height:
                 maze.tiles[y][x] = TileType.CORRIDOR
+
+    @staticmethod
+    def _get_ghost_spawn_points(maze: Maze) -> list[tuple[int, int]]:
+        """Return ghost spawn points near the corners without using pellet tiles."""
+        return [
+            (1, 1),
+            (maze.width - 2, 1),
+            (1, maze.height - 2),
+            (maze.width - 2, maze.height - 2),
+        ]
 
     @staticmethod
     def _add_border_walls(maze: Maze) -> None:
@@ -151,12 +193,7 @@ class MazeGenerator:
         rng = random.Random(seed)
         center = maze.get_center()
 
-        super_candidates = [
-            (1, 1),
-            (maze.width - 2, 1),
-            (1, maze.height - 2),
-            (maze.width - 2, maze.height - 2),
-        ]
+        super_candidates = maze.get_corners()
         super_positions: set[tuple[int, int]] = set()
         for x, y in super_candidates:
             if maze.is_walkable(x, y):
@@ -220,12 +257,7 @@ class MazeGenerator:
             GhostType.INKY,
             GhostType.CLYDE,
         ]
-        spawn_points = [
-            (1, 1),
-            (maze.width - 2, 1),
-            (1, maze.height - 2),
-            (maze.width - 2, maze.height - 2),
-        ]
+        spawn_points = MazeGenerator._get_ghost_spawn_points(maze)
 
         for index, (x, y) in enumerate(spawn_points):
             if maze.is_walkable(x, y):

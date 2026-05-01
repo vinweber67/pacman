@@ -64,6 +64,8 @@ class GameManager:
         if self.current_level is None:
             return
 
+        self._update_ghost_path_overlay()
+
         for ghost in self.current_level.ghosts:
             ghost.update(delta_time)
 
@@ -82,6 +84,13 @@ class GameManager:
                 if not ghost.is_respawning
             ]
         )
+        self.state.set_ghost_edible_states(
+            [
+                ghost.is_edible
+                for ghost in self.current_level.ghosts
+                if not ghost.is_respawning
+            ]
+        )
         self.state.set_super_mode_time_remaining(
             max(
                 (ghost.edible_timer for ghost in self.current_level.ghosts),
@@ -89,6 +98,23 @@ class GameManager:
             )
         )
         self._check_ghost_collisions()
+
+    def _update_ghost_path_overlay(self) -> None:
+        """Refresh stored ghost paths for the optional cheat overlay."""
+        if self.current_level is None or not self.state.show_all_paths:
+            self.state.set_ghost_path_overlays([])
+            return
+
+        maze = self.current_level.maze
+        pacman = self.current_level.pacman
+        overlays = [
+            GhostAI.calculate_path(ghost, pacman, maze)
+            for ghost in self.current_level.ghosts
+            if not ghost.is_respawning
+        ]
+        self.state.set_ghost_path_overlays(
+            [path for path in overlays if len(path) >= 2]
+        )
 
     def _move_ghosts(self) -> None:
         """Move each ghost one step according to its behavior."""
@@ -209,6 +235,35 @@ class GameManager:
             else:
                 self.state.is_victory = True
                 self.loop.stop()
+            return
+
+        if key == ord("t"):
+            CheatMode.toggle_no_time_limit(self.state)
+            return
+
+        if key == ord("i"):
+            CheatMode.toggle_invincibility(self.state)
+            return
+
+        if key == ord("g"):
+            CheatMode.freeze_ghosts(self.state)
+            return
+
+        if key == ord("l"):
+            CheatMode.add_lives(self.state)
+            return
+
+        if key == ord("k"):
+            CheatMode.increase_speed(self.state)
+            return
+
+        if key == ord("v"):
+            CheatMode.toggle_show_all_paths(self.state)
+            self._update_ghost_path_overlay()
+            return
+
+        if key == ord("h"):
+            CheatMode.toggle_overlay(self.state)
             return
 
         self.ui_manager.handle_input(key)
@@ -353,6 +408,13 @@ class GameManager:
             if ghost.is_respawning:
                 continue
             ghost.become_edible(duration)
+        self.state.set_ghost_edible_states(
+            [
+                ghost.is_edible
+                for ghost in self.current_level.ghosts
+                if not ghost.is_respawning
+            ]
+        )
         self.state.set_super_mode_time_remaining(duration)
 
     def _show_end_scene(self, title: str) -> None:

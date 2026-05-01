@@ -65,8 +65,11 @@ def main() -> int:
     except PacmanError as e:
         logger.error(f"Game error: {e}")
         return 1
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}", exc_info=True)
+    except ImportError as e:
+        logger.error(f"Startup error: {e}")
+        return 1
+    except OSError as e:
+        logger.error(f"System error: {e}")
         return 1
 
     logger.info("Game ended normally")

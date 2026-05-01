@@ -62,3 +62,39 @@ def test_skip_level() -> None:
     assert state.current_level == 1
     CheatMode.skip_level(state)
     assert state.current_level == 2
+
+
+def test_toggle_no_time_limit() -> None:
+    """No-time-limit cheat toggles on and off."""
+    state = GameState()
+    state.reset()
+
+    assert state.no_time_limit is False
+    CheatMode.toggle_no_time_limit(state)
+    assert state.no_time_limit is True
+    CheatMode.toggle_no_time_limit(state)
+    assert state.no_time_limit is False
+
+
+def test_toggle_show_all_paths() -> None:
+    """Path visualization cheat toggles on and off."""
+    state = GameState()
+    state.reset()
+
+    assert state.show_all_paths is False
+    CheatMode.toggle_show_all_paths(state)
+    assert state.show_all_paths is True
+    CheatMode.toggle_show_all_paths(state)
+    assert state.show_all_paths is False
+
+
+def test_toggle_cheat_overlay() -> None:
+    """Cheat overlay visibility toggles on and off."""
+    state = GameState()
+    state.reset()
+
+    assert state.cheat_overlay_visible is True
+    CheatMode.toggle_overlay(state)
+    assert state.cheat_overlay_visible is False
+    CheatMode.toggle_overlay(state)
+    assert state.cheat_overlay_visible is True

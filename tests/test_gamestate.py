@@ -133,6 +133,13 @@ class TestGameStatePositions:
         state.set_ghost_positions(positions)
         assert state.ghost_positions == positions
 
+    def test_set_ghost_edible_states(self) -> None:
+        """Test setting ghost edible render flags."""
+        state = GameState()
+        edible_states = [False, True, False]
+        state.set_ghost_edible_states(edible_states)
+        assert state.ghost_edible_states == edible_states
+
     def test_pacman_position_default(self) -> None:
         """Test default Pacman position."""
         state = GameState()

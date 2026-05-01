@@ -270,10 +270,22 @@ class GameScene(Scene):
             (120, 240, 255),
             (255, 185, 70),
         ]
+        frightened_blue = (40, 90, 255)
+        frightened_white = (240, 240, 255)
         for index, (ghost_x, ghost_y) in enumerate(self.state.ghost_positions):
             gx = offset_x + ghost_x * tile_size
             gy = offset_y + ghost_y * tile_size
             color = ghost_colors[index % len(ghost_colors)]
+            is_edible = (
+                index < len(self.state.ghost_edible_states)
+                and self.state.ghost_edible_states[index]
+            )
+            if is_edible:
+                is_flashing = (
+                    self.state.super_mode_time_remaining <= 3.0
+                    and int(self._anim_time * 8) % 2 == 0
+                )
+                color = frightened_white if is_flashing else frightened_blue
 
             radius = max(4, tile_size // 2)
             center_x = gx + tile_size // 2
@@ -295,12 +307,78 @@ class GameScene(Scene):
             pupil_r = max(1, eye_r // 2)
             renderer.draw_circle(left_eye_x, eye_y, eye_r, (255, 255, 255))
             renderer.draw_circle(right_eye_x, eye_y, eye_r, (255, 255, 255))
-            renderer.draw_circle(left_eye_x + 1, eye_y, pupil_r, (20, 40, 180))
+            pupil_color = (200, 40, 40) if is_edible else (20, 40, 180)
+            renderer.draw_circle(left_eye_x + 1, eye_y, pupil_r, pupil_color)
             renderer.draw_circle(
                 right_eye_x + 1,
                 eye_y,
                 pupil_r,
-                (20, 40, 180),
+                pupil_color,
+            )
+
+    def _draw_path_overlay(
+        self,
+        renderer: Renderer,
+        offset_x: int,
+        offset_y: int,
+        tile_size: int,
+    ) -> None:
+        """Draw ghost path overlays when the cheat is enabled."""
+        if not self.state.show_all_paths:
+            return
+
+        path_colors = [
+            (255, 90, 90),
+            (255, 180, 235),
+            (140, 255, 255),
+            (255, 205, 120),
+        ]
+        for index, path in enumerate(self.state.ghost_path_overlays):
+            if len(path) < 2:
+                continue
+            color = path_colors[index % len(path_colors)]
+            for start, end in zip(path, path[1:]):
+                x1 = offset_x + start[0] * tile_size + tile_size // 2
+                y1 = offset_y + start[1] * tile_size + tile_size // 2
+                x2 = offset_x + end[0] * tile_size + tile_size // 2
+                y2 = offset_y + end[1] * tile_size + tile_size // 2
+                renderer.draw_line(x1, y1, x2, y2, color, max(1, tile_size // 10))
+                renderer.draw_circle(x2, y2, max(2, tile_size // 9), color)
+
+    def _draw_cheat_overlay(self, renderer: Renderer) -> None:
+        """Draw an unobtrusive cheat help panel with current states."""
+        if not self.state.cheat_overlay_visible:
+            return
+
+        panel_x = max(0, renderer.width - 308)
+        panel_y = 54
+        panel_width = 296
+        panel_height = 144
+        renderer.draw_rect(panel_x, panel_y, panel_width, panel_height, (16, 18, 30))
+        renderer.draw_line(
+            panel_x,
+            panel_y,
+            panel_x + panel_width,
+            panel_y,
+            (110, 170, 255),
+            2,
+        )
+        renderer.draw_text(panel_x + 10, panel_y + 8, "CHEATS (H hide)", (220, 235, 255))
+
+        states = [
+            f"I Invincible: {'ON' if self.state.is_invincible else 'OFF'}",
+            f"G Freeze: {'ON' if self.state.are_ghosts_frozen else 'OFF'}",
+            f"T NoTimer: {'ON' if self.state.no_time_limit else 'OFF'}",
+            f"V Paths: {'ON' if self.state.show_all_paths else 'OFF'}",
+            f"L +Life  K Speed x{self.state.player_speed_multiplier:.1f}",
+            "C Skip level",
+        ]
+        for index, text in enumerate(states):
+            renderer.draw_text(
+                panel_x + 10,
+                panel_y + 30 + index * 18,
+                text,
+                (185, 195, 220),
             )
 
     def _draw_hud(self, renderer: Renderer) -> None:
@@ -328,7 +406,7 @@ class GameScene(Scene):
         renderer.draw_text(
             12,
             28,
-            "Move: WASD/Arrows | Pause: P | Quit: Q/ESC",
+            "Move: WASD/Arrows | Pause: P | Cheats: H/I/G/L/K/C/T/V | Quit: Q/ESC",
             (170, 178, 205),
         )
 
@@ -347,9 +425,11 @@ class GameScene(Scene):
             self._draw_maze(renderer, offset_x, offset_y, tile_size)
 
         self._draw_pellets(renderer, offset_x, offset_y, tile_size)
+        self._draw_path_overlay(renderer, offset_x, offset_y, tile_size)
         self._draw_pacman(renderer, offset_x, offset_y, tile_size)
         self._draw_ghosts(renderer, offset_x, offset_y, tile_size)
         self._draw_hud(renderer)
+        self._draw_cheat_overlay(renderer)
 
     def handle_input(self, key: int) -> None:
         """Gameplay input placeholder."""

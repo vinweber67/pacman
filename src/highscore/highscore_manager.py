@@ -52,7 +52,7 @@ class HighscoreManager:
 
             loaded_scores.sort(key=lambda entry: entry.score, reverse=True)
             self.scores = loaded_scores[:10]
-        except Exception as error:
+        except (OSError, json.JSONDecodeError, TypeError, ValueError) as error:
             logger.warning("Unable to load highscores: %s", error)
             self.scores = []
 
@@ -66,7 +66,7 @@ class HighscoreManager:
                     handle,
                     indent=2,
                 )
-        except Exception as error:
+        except (OSError, TypeError, ValueError) as error:
             logger.error("Unable to save highscores: %s", error)
 
     def add_score(self, name: str, score: int) -> bool:

@@ -66,6 +66,7 @@ class LevelManager:
         self.state.set_maze(maze)
         self.state.set_pacman_position(pacman.x, pacman.y)
         self.state.set_ghost_positions([ghost.position for ghost in ghosts])
+        self.state.set_ghost_edible_states([ghost.is_edible for ghost in ghosts])
         self.state.set_pellet_positions(
             [
                 pellet.position

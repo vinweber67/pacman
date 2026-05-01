@@ -15,8 +15,16 @@ class Pathfinder:
     @staticmethod
     def bfs(maze: Maze, start: Position, goal: Position) -> Optional[Position]:
         """Return the next step on the shortest path to the goal."""
-        if start == goal:
+        path = Pathfinder.bfs_path(maze, start, goal)
+        if len(path) < 2:
             return None
+        return path[1]
+
+    @staticmethod
+    def bfs_path(maze: Maze, start: Position, goal: Position) -> list[Position]:
+        """Return the full shortest path from start to goal if reachable."""
+        if start == goal:
+            return [start]
 
         queue = deque([(start, [start])])
         visited = {start}
@@ -27,11 +35,11 @@ class Pathfinder:
                 if neighbor in visited:
                     continue
                 if neighbor == goal:
-                    return path[1] if len(path) > 1 else neighbor
+                    return path + [neighbor]
                 visited.add(neighbor)
                 queue.append((neighbor, path + [neighbor]))
 
-        return None
+        return []
 
     @staticmethod
     def manhattan_distance(p1: Position, p2: Position) -> int:

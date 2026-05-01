@@ -25,7 +25,7 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 - [x] Le fichier `config.json` existe et est valid JSON
 - [x] Les commentaires `#` sont supportés et ignorés
 - [x] Les commentaires C++ `//` sont supportés (bonus)
-- [ ] Les clés recommandées sont présentes:
+- [x] Les clés recommandées sont présentes:
   - [x] `highscore_filename` (défaut: `.data/highscores.json`)
   - [x] `levels` (array avec width, height, seed, max_time)
   - [x] `lives` (défaut: 3)
@@ -39,7 +39,7 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 ### 1.3 Gestion des erreurs de configuration
 
 - [x] Configuration manquante → defaults appliqués, log clair
-- [ ] Clés invalides → ignorées, pas de crash
+- [x] Clés invalides → ignorées, pas de crash
 - [x] Valeurs invalides → clamped aux defaults, log clair
 - [x] Aucun traceback Python affiché
 - [x] Le jeu continue avec config partiellement valide
@@ -48,7 +48,7 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 - [x] Au moins 10 niveaux configurés
 - [x] Premier niveau utilise seed fixe (ex: 42)
-- [ ] Niveaux suivants utilisent seeds aléatoires
+- [x] Niveaux suivants utilisent seeds aléatoires
 - [x] Chaque niveau a width, height, max_time définis
 
 ---
@@ -65,14 +65,14 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 2.2 Gestion des erreurs de génération
 
-- [ ] Si la génération échoue → message clair, pas de crash
-- [ ] Un fallback/labyrinthe par défaut est utilisé
-- [ ] Le jeu est toujours jouable
+- [x] Si la génération échoue → message clair, pas de crash
+- [x] Un fallback/labyrinthe par défaut est utilisé
+- [x] Le jeu est toujours jouable
 
 ### 2.3 Placement des entités
 
 - [x] Les pacgums sont placés dans les corridors
-- [ ] 4 super-pacgums sont placés aux 4 coins
+- [x] 4 super-pacgums sont placés aux 4 coins
 - [x] 4 fantômes sont placés aux 4 coins
 - [x] Pac-Man démarre au centre du labyrinthe
 - [x] Les positions de spawn sont valides (corridors, pas murs)
@@ -133,30 +133,30 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 4.1 Mouvement autonome
 
-- [ ] Les 4 fantômes se déplacent automatiquement
-- [ ] Les fantômes se déplacent uniquement dans les corridors
-- [ ] Les fantômes ne traversent pas les murs
-- [ ] Les fantômes changent de direction régulièrement
+- [x] Les 4 fantômes se déplacent automatiquement
+- [x] Les fantômes se déplacent uniquement dans les corridors
+- [x] Les fantômes ne traversent pas les murs
+- [x] Les fantômes changent de direction régulièrement
 
 ### 4.2 Comportement Chase (normal)
 
-- [ ] Blinky (rouge): Chasse Pac-Man directement via BFS/pathfinding
-- [ ] Pinky (rose): Ambush - cible position + 4 tuiles devant Pac-Man
-- [ ] Inky (cyan): Imprévisible - mix entre chasse et random
-- [ ] Clyde (orange): Scatter si Pac-Man trop proche, sinon retour au coin
+- [x] Blinky (rouge): Chasse Pac-Man directement via BFS/pathfinding
+- [x] Pinky (rose): Ambush - cible position + 4 tuiles devant Pac-Man
+- [x] Inky (cyan): Imprévisible - mix entre chasse et random
+- [x] Clyde (orange): Scatter si Pac-Man trop proche, sinon retour au coin
 
 ### 4.3 Comportement Edible (après super-pacgum)
 
-- [ ] Les fantômes fuient Pac-Man dans la direction opposée
-- [ ] Les fantômes continuent à fuir pendant `super_pacgum_duration` secondes
-- [ ] Une fois l'effet expiré, les fantômes redeviennent normaux
-- [ ] Le temps restant de mode edible est visible pour le joueur (bonus)
+- [x] Les fantômes fuient Pac-Man dans la direction opposée
+- [x] Les fantômes continuent à fuir pendant `super_pacgum_duration` secondes
+- [x] Une fois l'effet expiré, les fantômes redeviennent normaux
+- [x] Le temps restant de mode edible est visible pour le joueur (bonus)
 
 ### 4.4 Respawn après être mangé
 
-- [ ] Fantôme mangé: timer de `ghost_respawn_time` secondes (config, défaut: 10s)
-- [ ] Après le timer, le fantôme respawn à son coin d'origine
-- [ ] Les autres fantômes continuent normalement pendant le respawn
+- [x] Fantôme mangé: timer de `ghost_respawn_time` secondes (config, défaut: 10s)
+- [x] Après le timer, le fantôme respawn à son coin d'origine
+- [x] Les autres fantômes continuent normalement pendant le respawn
 
 ### 4.5 Identification des fantômes
 
@@ -180,7 +180,7 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 ### 5.2 Génération des niveaux
 
 - [x] Niveau 1: Généré avec seed fixe (42) → reproductible
-- [ ] Niveaux 2-10+: Générés avec seeds aléatoires → variété
+- [x] Niveaux 2-10+: Générés avec seeds aléatoires → variété
 - [x] Chaque niveau a un labyrinthe différent (visuellement)
 - [x] Chaque niveau est jouable
 
@@ -191,7 +191,7 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 - [ ] Quand timer atteint 0:
   - [x] OPTION A: Niveau redémarré
   - [ ] OPTION B: Jeu terminé
-  - [ ] (Comportement documenté dans README)
+  - [x] (Comportement documenté dans README)
 
 ### 5.4 Fin du jeu
 
@@ -256,7 +256,7 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 - [x] Pac-Man visible et animé
 - [x] 4 fantômes visibles et distinguables
 - [x] Pacgums visibles
-- [ ] Super-pacgums visibles et différents des pacgums
+- [x] Super-pacgums visibles et différents des pacgums
 - [ ] Pas de flickering ou lag
 
 ### 7.3 HUD en jeu
@@ -269,15 +269,11 @@ Visible en permanence pendant le jeu:
 
 ### 7.4 Menu de pause
 
-- [ ] Accessible avec la touche P (ou définie)
-- [ ] Affichage clair: "PAUSED"
-- [ ] Options:
-  - [x] Resume
-  - [x] Return to Main Menu
-- [ ] Le jeu ne se met pas à jour quand en pause
-- [ ] Les entités sont figées
 - [x] Accessible avec la touche P (ou définie)
 - [x] Affichage clair: "PAUSED"
+- [x] Options:
+  - [x] Resume
+  - [x] Return to Main Menu
 - [x] Le jeu ne se met pas à jour quand en pause
 - [x] Les entités sont figées
 
@@ -310,8 +306,8 @@ Visible en permanence pendant le jeu:
 ### 8.1 Activation
 
 - [x] Mode triche activable via touche (ex: Ctrl+H)
-- [ ] Activé pendant la phase d'évaluation
-- [ ] Facilite l'évaluation
+- [x] Activé pendant la phase d'évaluation
+- [x] Facilite l'évaluation
 
 ### 8.2 Fonctionnalités de triche
 
@@ -321,15 +317,15 @@ Au moins 3-4 parmi:
 - [x] **Ghost Freeze**: Les fantômes ne se déplacent plus
 - [x] **Extra Lives**: Ajouter des vies
 - [x] **Speed Boost**: Pac-Man se déplace plus vite
-- [ ] **Show All Paths**: Afficher les chemins de pathfinding
-- [ ] **No Time Limit**: Le timer disparaît/est infini
+- [x] **Show All Paths**: Afficher les chemins de pathfinding
+- [x] **No Time Limit**: Le timer disparaît/est infini
 
 ### 8.3 Interface du mode triche
 
-- [ ] Menu accessible en jeu avec touche dédiée
-- [ ] Affichage des commandes disponibles
-- [ ] Activation/désactivation des cheats
-- [ ] Visible mais non-intrusif
+- [x] Menu accessible en jeu avec touche dédiée
+- [x] Affichage des commandes disponibles
+- [x] Activation/désactivation des cheats
+- [x] Visible mais non-intrusif
 
 ---
 
@@ -376,17 +372,17 @@ make lint
 
 ### 9.5 Gestion d'erreurs
 
-- [ ] Pas de `except Exception` générique (utilisé `try-except` spécifiques)
-- [ ] Pas de `except:` (catch all)
-- [ ] Pas d'exceptions ignorées silencieusement (`pass`)
-- [ ] Exceptions loggées avec message clair
+- [x] Pas de `except Exception` générique (utilisé `try-except` spécifiques)
+- [x] Pas de `except:` (catch all)
+- [x] Pas d'exceptions ignorées silencieusement (`pass`)
+- [x] Exceptions loggées avec message clair
 - [ ] Le programme ne crashe jamais avec traceback
-- [ ] Erreurs utilisateur → messages clairs, pas techniques
+- [x] Erreurs utilisateur → messages clairs, pas techniques
 
 ### 9.6 Logging
 
 - [x] Utilisé `logger` au lieu de `print()`
-- [ ] Niveaux de log corrects:
+- [x] Niveaux de log corrects:
   - [x] `logger.debug()` pour infos de développement
   - [x] `logger.info()` pour infos importantes
   - [x] `logger.warning()` pour avertissements
@@ -411,23 +407,23 @@ make test
 ```
 
 - [x] Tests unitaires pour chaque module (pytest)
-- [ ] Au moins les modules critiques testés:
+- [x] Au moins les modules critiques testés:
   - [x] Config loader
   - [x] Pacman mouvement/collision
   - [x] Ghost IA
   - [x] Maze generation
   - [x] Highscore system
-- [ ] Coverage > 50% du code critique
+- [x] Coverage > 50% du code critique
 - [x] Tous les tests passent (`make test`)
 
 ### 10.2 Edge cases
 
-- [ ] Coin avec Pacman + Ghost + Super-Pacgum
-- [ ] Niveau avec peu de pacgums
-- [ ] Ghost au coin quand Pacman arrive
-- [ ] Multiple super-pacgums proches
-- [ ] Timer très court
-- [ ] Fichier config minimal (tous les defaults)
+- [x] Coin avec Pacman + Ghost + Super-Pacgum
+- [x] Niveau avec peu de pacgums
+- [x] Ghost au coin quand Pacman arrive
+- [x] Multiple super-pacgums proches
+- [x] Timer très court
+- [x] Fichier config minimal (tous les defaults)
 
 ---
 
@@ -453,8 +449,8 @@ make run
 make debug
 ```
 
-- [ ] Lance le jeu en mode debug (pdb)
-- [ ] Points de break fonctionnent
+- [x] Lance le jeu en mode debug (pdb)
+- [x] Points de break fonctionnent
 
 ```bash
 make clean
@@ -485,16 +481,6 @@ make lint-strict
 ### 12.1 README.md
 
 Le README doit contenir:
-- [ ] Première ligne italicisée: "*This project has been created as part of the 42 curriculum by [student names]*"
-- [ ] Section "Description": Présentation du projet et goal
-- [ ] Section "Instructions": Compilation, installation, exécution
-- [ ] Section "Resources": Références, documentation, comment AI a été utilisé
-- [ ] Section "Configuration": Structure du config.json et defaults
-- [ ] Section "Highscore": Explication du système et justification
-- [ ] Section "Maze Generation": Comment A-Maze-ing est utilisé
-- [ ] Section "Implementation": Résumé technique
-- [ ] Section "General Software Architecture": Vue d'ensemble (modules, classes, relations)
-- [ ] Section "Project Management": Suivi du projet + lien vers doc/PROJECT_MANAGEMENT/
 - [x] Première ligne italicisée: "*This project has been created as part of the 42 curriculum by [student names]*"
 - [x] Section "Description": Présentation du projet et goal
 - [x] Section "Instructions": Compilation, installation, exécution
@@ -509,18 +495,12 @@ Le README doit contenir:
 ### 12.2 Documentation technique
 
 - [x] [doc/ARCHITECTURE.md](../doc/ARCHITECTURE.md): Architecture complète ✓ (déjà fait)
-- [ ] [doc/API.md](../doc/API.md): Documentation des APIs (créé)
-- [ ] [doc/DESIGN.md](../doc/DESIGN.md): Décisions de design (créé)
 - [x] [doc/API.md](../doc/API.md): Documentation des APIs (créé)
 - [x] [doc/DESIGN.md](../doc/DESIGN.md): Décisions de design (créé)
 
 ### 12.3 Project Management
 
 Dossier [doc/PROJECT_MANAGEMENT/](../doc/PROJECT_MANAGEMENT/):
-- [ ] timeline.md: Timeline du projet
-- [ ] progress.md: Progress réel vs timeline
-- [ ] risk_analysis.md: Analyse des risques
-- [ ] team_notes.md: Notes sur la collaboration
 - [x] timeline.md: Timeline du projet
 - [x] progress.md: Progress réel vs timeline
 - [x] risk_analysis.md: Analyse des risques
@@ -536,7 +516,6 @@ Dossier [doc/PROJECT_MANAGEMENT/](../doc/PROJECT_MANAGEMENT/):
 - [x] `config.json` existe à la racine (ou template)
 - [x] `Makefile` existe et valide
 - [x] `requirements.txt` existe avec dépendances
-- [ ] `README.md` existe et complet
 - [x] `README.md` existe et complet
 - [x] `.gitignore` existe
 - [x] `.copilot-instructions.md` existe
@@ -604,10 +583,10 @@ Dossier [doc/PROJECT_MANAGEMENT/](../doc/PROJECT_MANAGEMENT/):
 
 ### 15.3 Instruction d'installation
 
-- [ ] README clair sur comment installer et lancer
-- [ ] Commande simple: `python3 pac-man.py config.json`
-- [ ] Pas d'étapes compliquées
-- [ ] Avec make: `make install && make run`
+- [x] README clair sur comment installer et lancer
+- [x] Commande simple: `python3 pac-man.py config.json`
+- [x] Pas d'étapes compliquées
+- [x] Avec make: `make install && make run`
 
 ---
 
@@ -615,15 +594,15 @@ Dossier [doc/PROJECT_MANAGEMENT/](../doc/PROJECT_MANAGEMENT/):
 
 ### Mandatory Part
 
-- [ ] Jeu complet et jouable ✓
-- [ ] Utilise MLX ou librairie similaire ✓
-- [ ] OOP et architecture modulaire ✓
-- [ ] Configuration via fichier JSON ✓
-- [ ] Gestion robuste d'erreurs ✓
-- [ ] A-Maze-ing package intégré ✓
-- [ ] Système de highscores persistant ✓
-- [ ] UI polished (menu, game view, game-over) ✓
-- [ ] Mode triche pour évaluation ✓
+- [x] Jeu complet et jouable ✓
+- [x] Utilise MLX ou librairie similaire ✓
+- [x] OOP et architecture modulaire ✓
+- [x] Configuration via fichier JSON ✓
+- [x] Gestion robuste d'erreurs ✓
+- [x] A-Maze-ing package intégré ✓
+- [x] Système de highscores persistant ✓
+- [x] UI polished (menu, game view, game-over) ✓
+- [x] Mode triche pour évaluation ✓
 - [ ] Déployé sur Itch.io/Steam ✓
 
 ### General Rules
@@ -647,27 +626,27 @@ Dossier [doc/PROJECT_MANAGEMENT/](../doc/PROJECT_MANAGEMENT/):
 
 ### Game Loop
 
-- [ ] Main Menu > Start > Win/Lose > Highscore > Menu ✓
+- [x] Main Menu > Start > Win/Lose > Highscore > Menu ✓
 
 ### Project Management
 
-- [ ] Timeline, progress tracking ✓
-- [ ] Risk analysis ✓
-- [ ] Team organization ✓
+- [x] Timeline, progress tracking ✓
+- [x] Risk analysis ✓
+- [x] Team organization ✓
 - [x] Acceptance test plan (CE DOCUMENT) ✓
 
 ### README Requirements
 
-- [ ] Premier ligne italicisée (42 curriculum) ✓
-- [ ] Description ✓
-- [ ] Instructions ✓
-- [ ] Resources ✓
-- [ ] Configuration ✓
-- [ ] Highscore ✓
-- [ ] Maze Generation ✓
-- [ ] Implementation ✓
-- [ ] General Software Architecture ✓
-- [ ] Project Management ✓
+- [x] Premier ligne italicisée (42 curriculum) ✓
+- [x] Description ✓
+- [x] Instructions ✓
+- [x] Resources ✓
+- [x] Configuration ✓
+- [x] Highscore ✓
+- [x] Maze Generation ✓
+- [x] Implementation ✓
+- [x] General Software Architecture ✓
+- [x] Project Management ✓
 
 ---
 
