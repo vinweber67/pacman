@@ -40,6 +40,7 @@ class GameState:
     pacman_position: Position = (10, 10)
     ghost_positions: List[Position] = field(default_factory=list)
     ghost_edible_states: List[bool] = field(default_factory=list)
+    ghost_respawn_positions: List[Position] = field(default_factory=list)
     ghost_path_overlays: List[List[Position]] = field(default_factory=list)
     maze: Optional[Maze] = None
     pellet_positions: List[Position] = field(default_factory=list)
@@ -81,6 +82,7 @@ class GameState:
         self.pacman_position = (10, 10)
         self.ghost_positions = []
         self.ghost_edible_states = []
+        self.ghost_respawn_positions = []
         self.ghost_path_overlays = []
         self.maze = None
         self.pellet_positions = []
@@ -109,6 +111,7 @@ class GameState:
         self.pacman_position = (10, 10)
         self.ghost_positions = []
         self.ghost_edible_states = []
+        self.ghost_respawn_positions = []
         self.ghost_path_overlays = []
         self.maze = None
         self.pellet_positions = []
@@ -147,6 +150,10 @@ class GameState:
     def set_ghost_edible_states(self, states: List[bool]) -> None:
         """Set whether each rendered ghost is currently edible."""
         self.ghost_edible_states = states
+
+    def set_ghost_respawn_positions(self, positions: List[Position]) -> None:
+        """Set positions used to render ghosts that are respawning."""
+        self.ghost_respawn_positions = positions
 
     def set_maze(self, maze: Maze) -> None:
         """Attach current level maze for rendering."""

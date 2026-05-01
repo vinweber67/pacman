@@ -15,6 +15,8 @@ from src.ui.scenes.scene import Scene
 class GameScene(Scene):
     """Gameplay scene with enriched visual rendering."""
 
+    _HUD_HEIGHT = 84
+
     def __init__(self) -> None:
         self.state = GameState()
         self._anim_time = 0.0
@@ -37,7 +39,7 @@ class GameScene(Scene):
     def _layout(renderer: Renderer, maze: Maze) -> tuple[int, int, int]:
         """Compute dynamic maze layout on screen."""
         horizontal_padding = 12
-        top_hud_height = 48
+        top_hud_height = GameScene._HUD_HEIGHT
         bottom_padding = 12
         available_width = max(1, renderer.width - 2 * horizontal_padding)
         available_height = max(
@@ -71,6 +73,15 @@ class GameScene(Scene):
             green = int(10 + 16 * ratio)
             blue = int(18 + 35 * ratio)
             renderer.draw_line(0, y, renderer.width, y, (red, green, blue), 1)
+
+        for index in range(36):
+            x = (index * 97 + 23) % max(1, renderer.width)
+            y = (index * 53 + 17) % max(1, renderer.height)
+            twinkle = 0.35 + 0.65 * (
+                (math.sin(self._anim_time * 1.8 + index * 0.9) + 1.0) / 2.0
+            )
+            brightness = int(90 + 120 * twinkle)
+            renderer.draw_circle(x, y, 1, (brightness, brightness, min(255, brightness + 25)))
 
     def _draw_maze(
         self,
@@ -229,6 +240,12 @@ class GameScene(Scene):
         cy = offset_y + pacman_y * tile_size + tile_size // 2
         radius = max(4, tile_size // 2 - 1)
 
+        if self.state.super_mode_time_remaining > 0.0:
+            glow_pulse = (math.sin(self._anim_time * 11.0) + 1.0) / 2.0
+            glow_radius = radius + 3 + int(glow_pulse * max(2, tile_size // 8))
+            renderer.draw_circle(cx, cy, glow_radius + 3, (55, 95, 180))
+            renderer.draw_circle(cx, cy, glow_radius, (95, 150, 255))
+
         renderer.draw_circle(cx, cy, radius, (255, 220, 20))
         renderer.draw_circle(
             cx - radius // 4,
@@ -274,7 +291,11 @@ class GameScene(Scene):
         frightened_white = (240, 240, 255)
         for index, (ghost_x, ghost_y) in enumerate(self.state.ghost_positions):
             gx = offset_x + ghost_x * tile_size
-            gy = offset_y + ghost_y * tile_size
+            bob_offset = int(
+                math.sin(self._anim_time * 5.5 + index * 0.8)
+                * max(1, tile_size // 14)
+            )
+            gy = offset_y + ghost_y * tile_size + bob_offset
             color = ghost_colors[index % len(ghost_colors)]
             is_edible = (
                 index < len(self.state.ghost_edible_states)
@@ -290,6 +311,13 @@ class GameScene(Scene):
             radius = max(4, tile_size // 2)
             center_x = gx + tile_size // 2
             center_y = gy + max(3, tile_size // 2 - 1)
+
+            renderer.draw_circle(
+                center_x,
+                gy + tile_size - max(2, tile_size // 8),
+                max(2, tile_size // 3),
+                (14, 16, 28),
+            )
 
             renderer.draw_circle(center_x, center_y, radius, color)
             renderer.draw_rect(
@@ -315,6 +343,30 @@ class GameScene(Scene):
                 pupil_r,
                 pupil_color,
             )
+
+        for index, (ghost_x, ghost_y) in enumerate(self.state.ghost_respawn_positions):
+            gx = offset_x + ghost_x * tile_size
+            gy = offset_y + ghost_y * tile_size
+            bob_offset = int(
+                math.sin(self._anim_time * 6.5 + index * 1.2)
+                * max(1, tile_size // 16)
+            )
+            eye_y = gy + max(3, tile_size // 2) + bob_offset
+            left_eye_x = gx + tile_size // 3
+            right_eye_x = gx + (2 * tile_size) // 3
+            eye_r = max(2, tile_size // 6)
+            pupil_r = max(1, eye_r // 2)
+
+            renderer.draw_circle(
+                gx + tile_size // 2,
+                gy + tile_size - max(2, tile_size // 8),
+                max(2, tile_size // 4),
+                (14, 16, 28),
+            )
+            renderer.draw_circle(left_eye_x, eye_y, eye_r, (255, 255, 255))
+            renderer.draw_circle(right_eye_x, eye_y, eye_r, (255, 255, 255))
+            renderer.draw_circle(left_eye_x + 1, eye_y, pupil_r, (80, 150, 255))
+            renderer.draw_circle(right_eye_x + 1, eye_y, pupil_r, (80, 150, 255))
 
     def _draw_path_overlay(
         self,
@@ -351,7 +403,7 @@ class GameScene(Scene):
             return
 
         panel_x = max(0, renderer.width - 308)
-        panel_y = 54
+        panel_y = GameScene._HUD_HEIGHT + 10
         panel_width = 296
         panel_height = 144
         renderer.draw_rect(panel_x, panel_y, panel_width, panel_height, (16, 18, 30))
@@ -381,31 +433,107 @@ class GameScene(Scene):
                 (185, 195, 220),
             )
 
+    def _draw_life_icons(self, renderer: Renderer) -> None:
+        """Draw compact Pac-Man life icons in the HUD."""
+        icon_count = max(0, min(5, int(self.state.lives)))
+        spacing = 22
+        total_width = max(0, (icon_count - 1) * spacing)
+        start_x = renderer.width - total_width - 28
+        center_y = 20
+        radius = 7
+
+        for index in range(icon_count):
+            cx = start_x + index * 22
+            renderer.draw_circle(cx, center_y, radius, (255, 215, 40))
+            renderer.draw_polygon(
+                [
+                    (cx + radius + 1, center_y),
+                    (cx + radius // 2, center_y - radius // 2),
+                    (cx + radius // 2, center_y + radius // 2),
+                ],
+                (12, 14, 24),
+            )
+
+    def _draw_power_meter(self, renderer: Renderer) -> None:
+        """Draw a compact power bar when super mode is active."""
+        if self.state.super_mode_time_remaining <= 0.0:
+            return
+
+        meter_width = 150
+        meter_height = 10
+        meter_x = renderer.width - meter_width - 160
+        meter_y = 36
+        ratio = min(1.0, self.state.super_mode_time_remaining / 10.0)
+        fill_width = max(0, int(meter_width * ratio))
+        pulse = (math.sin(self._anim_time * 10.0) + 1.0) / 2.0
+        fill_color = (
+            int(90 + 80 * pulse),
+            int(150 + 60 * pulse),
+            255,
+        )
+
+        renderer.draw_rect(meter_x, meter_y, meter_width, meter_height, (22, 28, 44))
+        renderer.draw_rect(meter_x, meter_y, fill_width, meter_height, fill_color)
+        renderer.draw_line(
+            meter_x,
+            meter_y - 1,
+            meter_x + meter_width,
+            meter_y - 1,
+            (180, 220, 255),
+            1,
+        )
+
+    def _draw_progress_text(self, renderer: Renderer) -> None:
+        """Draw level progression details in the HUD."""
+        progress_text = (
+            f"Progress: {self.state.pellets_eaten}/{self.state.pellets_total}"
+            " pellets"
+        )
+        renderer.draw_text(12, 32, progress_text, (205, 218, 255))
+
+        remaining = max(0, self.state.pellets_total - self.state.pellets_eaten)
+        renderer.draw_text(
+            250,
+            32,
+            f"Remaining: {remaining}",
+            (165, 185, 225),
+        )
+
     def _draw_hud(self, renderer: Renderer) -> None:
         """Draw top HUD with panel background."""
-        renderer.draw_rect(0, 0, renderer.width, 44, (12, 14, 24))
-        renderer.draw_line(0, 44, renderer.width, 44, (40, 80, 160), 2)
+        renderer.draw_rect(0, 0, renderer.width, self._HUD_HEIGHT, (12, 14, 24))
+        renderer.draw_line(
+            0,
+            self._HUD_HEIGHT,
+            renderer.width,
+            self._HUD_HEIGHT,
+            (40, 80, 160),
+            2,
+        )
 
         hud_text = (
-            f"Score:{self.state.score}  "
-            f"Lives:{self.state.lives}  "
-            f"Level:{self.state.current_level}  "
-            f"Time:{self.state.level_time_remaining}"
+            f"Score: {self.state.score}    "
+            f"Lives: {self.state.lives}    "
+            f"Level: {self.state.current_level}    "
+            f"Time: {self.state.level_time_remaining}"
         )
-        renderer.draw_text(12, 10, hud_text, (240, 240, 255))
+        renderer.draw_text(12, 8, hud_text, (240, 240, 255))
+        self._draw_progress_text(renderer)
         if self.state.super_mode_time_remaining > 0.0:
             renderer.draw_text(
-                540,
-                10,
+                renderer.width - 300,
+                8,
                 (
                     "POWER: "
                     f"{self.state.super_mode_time_remaining:.1f}s"
                 ),
                 (150, 220, 255),
             )
+        self._draw_power_meter(renderer)
+        self._draw_life_icons(renderer)
         renderer.draw_text(
             12,
-            28,
+            56,
             "Move: WASD/Arrows | Pause: P | Cheats: H/I/G/L/K/C/T/V | Quit: Q/ESC",
             (170, 178, 205),
         )
@@ -417,7 +545,7 @@ class GameScene(Scene):
 
         maze = self.state.maze
         offset_x = 0
-        offset_y = 40
+        offset_y = self._HUD_HEIGHT
         tile_size = TILE_SIZE
 
         if maze is not None:

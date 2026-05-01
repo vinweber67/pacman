@@ -383,6 +383,7 @@ class TestGameManagerIntegration:
 
         assert manager.state.score == previous_score + 250
         assert ghost.is_respawning is True
+        assert manager.state.ghost_respawn_positions == [(ghost.spawn_x, ghost.spawn_y)]
 
     def test_multiple_nearby_super_pellets_refresh_super_mode(self) -> None:
         """Eating nearby super pellets should refresh the edible timer."""
@@ -535,6 +536,9 @@ class TestGameManagerIntegration:
         manager.update(0.2)
 
         assert ghost_to_respawn.position == (-1, -1)
+        assert manager.state.ghost_respawn_positions == [
+            (ghost_to_respawn.spawn_x, ghost_to_respawn.spawn_y)
+        ]
         assert other_ghost.position != other_start
 
     def test_ghost_in_corner_when_pacman_arrives(self) -> None:

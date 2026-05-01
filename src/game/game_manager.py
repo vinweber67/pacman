@@ -77,6 +77,24 @@ class GameManager:
             self._ghost_move_accumulator = 0.0
             self._move_ghosts()
 
+        self._sync_ghost_render_state()
+        self._check_ghost_collisions()
+        self._sync_ghost_render_state()
+        self.state.set_super_mode_time_remaining(
+            max(
+                (ghost.edible_timer for ghost in self.current_level.ghosts),
+                default=0.0,
+            )
+        )
+
+    def _sync_ghost_render_state(self) -> None:
+        """Synchronize ghost render data stored in the shared game state."""
+        if self.current_level is None:
+            self.state.set_ghost_positions([])
+            self.state.set_ghost_edible_states([])
+            self.state.set_ghost_respawn_positions([])
+            return
+
         self.state.set_ghost_positions(
             [
                 ghost.position
@@ -91,13 +109,13 @@ class GameManager:
                 if not ghost.is_respawning
             ]
         )
-        self.state.set_super_mode_time_remaining(
-            max(
-                (ghost.edible_timer for ghost in self.current_level.ghosts),
-                default=0.0,
-            )
+        self.state.set_ghost_respawn_positions(
+            [
+                (ghost.spawn_x, ghost.spawn_y)
+                for ghost in self.current_level.ghosts
+                if ghost.is_respawning
+            ]
         )
-        self._check_ghost_collisions()
 
     def _update_ghost_path_overlay(self) -> None:
         """Refresh stored ghost paths for the optional cheat overlay."""
@@ -149,6 +167,7 @@ class GameManager:
                 ghost.start_respawn(
                     float(self.config.get("ghost_respawn_time", 10))
                 )
+                self._sync_ghost_render_state()
                 continue
 
             if self.state.is_invincible:
@@ -157,12 +176,14 @@ class GameManager:
             self.state.lose_life()
             if self.state.is_game_over:
                 self._show_end_scene("GAME OVER")
+                self._sync_ghost_render_state()
                 return
 
             maze = self.current_level.maze
             center_x, center_y = maze.get_center()
             pacman.move_to(center_x, center_y)
             self.state.set_pacman_position(center_x, center_y)
+            self._sync_ghost_render_state()
             return
 
     def render(self) -> None:
@@ -372,8 +393,11 @@ class GameManager:
             ]
         )
         self.state.update_pellets(
-            len(self.state.pellet_positions)
-            + len(self.state.super_pellet_positions),
+            len(self.current_level.pellets)
+            - (
+                len(self.state.pellet_positions)
+                + len(self.state.super_pellet_positions)
+            ),
             len(self.current_level.pellets),
         )
 

@@ -67,6 +67,7 @@ class LevelManager:
         self.state.set_pacman_position(pacman.x, pacman.y)
         self.state.set_ghost_positions([ghost.position for ghost in ghosts])
         self.state.set_ghost_edible_states([ghost.is_edible for ghost in ghosts])
+        self.state.set_ghost_respawn_positions([])
         self.state.set_pellet_positions(
             [
                 pellet.position
@@ -81,7 +82,7 @@ class LevelManager:
                 if pellet.is_super
             ]
         )
-        self.state.update_pellets(len(pellets), len(pellets))
+        self.state.update_pellets(0, len(pellets))
 
         self.current_level_data = LevelData(
             maze=maze,
