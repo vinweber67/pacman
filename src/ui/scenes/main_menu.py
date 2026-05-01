@@ -10,7 +10,12 @@ class MainMenuScene(Scene):
     """Simple main menu scene."""
 
     def __init__(self) -> None:
-        self.options = ["Start Game", "Highscores", "Instructions", "Exit"]
+        self.options = [
+            "Start Game",
+            "View Highscores",
+            "Instructions",
+            "Exit",
+        ]
         self.selected = 0
 
     def on_enter(self) -> None:

@@ -99,33 +99,33 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 3.3 Manger les super-pacgums
 
-- [ ] Pac-Man mange les super-pacgums au contact
-- [ ] Le score augmente de `points_per_super_pacgum` (config)
-- [ ] Le super-pacgum disparaît
-- [ ] Les fantômes deviennent comestibles
-- [ ] L'effet dure `super_pacgum_duration` secondes (config)
-- [ ] Après l'effet, les fantômes redeviennent normaux
+- [x] Pac-Man mange les super-pacgums au contact
+- [x] Le score augmente de `points_per_super_pacgum` (config)
+- [x] Le super-pacgum disparaît
+- [x] Les fantômes deviennent comestibles
+- [x] L'effet dure `super_pacgum_duration` secondes (config)
+- [x] Après l'effet, les fantômes redeviennent normaux
 
 ### 3.4 Manger les fantômes
 
-- [ ] Pac-Man peut manger les fantômes quand ils sont comestibles (edible)
-- [ ] Le score augmente de `points_per_ghost` (config) par fantôme mangé
-- [ ] Le fantôme mangé disparaît et respawn après `ghost_respawn_time` secondes
-- [ ] Le fantôme respawn à son coin d'origine
+- [x] Pac-Man peut manger les fantômes quand ils sont comestibles (edible)
+- [x] Le score augmente de `points_per_ghost` (config) par fantôme mangé
+- [x] Le fantôme mangé disparaît et respawn après `ghost_respawn_time` secondes
+- [x] Le fantôme respawn à son coin d'origine
 
 ### 3.5 Vies et game-over
 
 - [x] Pac-Man commence avec `lives` vies (config, défaut: 3)
-- [ ] Toucher un fantôme non-comestible = perte de 1 vie
-- [ ] Après perte de vie, Pac-Man respawn au centre
-- [ ] Quand lives = 0, affichage "Game Over"
-- [ ] Le jeu ne continue pas après game-over
+- [x] Toucher un fantôme non-comestible = perte de 1 vie
+- [x] Après perte de vie, Pac-Man respawn au centre
+- [x] Quand lives = 0, affichage "Game Over"
+- [x] Le jeu ne continue pas après game-over
 
 ### 3.6 Respawn
 
-- [ ] Après perte de vie, Pac-Man respawn au centre du labyrinthe
-- [ ] Les fantômes ne respawn pas immédiatement (restent à leur position)
-- [ ] Les pacgums qui ont été mangés restent mangés
+- [x] Après perte de vie, Pac-Man respawn au centre du labyrinthe
+- [x] Les fantômes ne respawn pas immédiatement (restent à leur position)
+- [x] Les pacgums qui ont été mangés restent mangés
 
 ---
 
@@ -187,18 +187,18 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 ### 5.3 Gestion du temps par niveau
 
 - [x] Timer affiché: `max_time` secondes (config, ex: 90s)
-- [ ] Timer diminue en continu
+- [x] Timer diminue en continu
 - [ ] Quand timer atteint 0:
-  - [ ] OPTION A: Niveau redémarré
+  - [x] OPTION A: Niveau redémarré
   - [ ] OPTION B: Jeu terminé
   - [ ] (Comportement documenté dans README)
 
 ### 5.4 Fin du jeu
 
-- [ ] Quand tous les niveaux (10+) sont complétés → affichage "Victory"
-- [ ] Quand le joueur perd toutes ses vies → affichage "Game Over"
-- [ ] À la fin, affichage du score final
-- [ ] Prompt pour entrer le nom du joueur
+- [x] Quand tous les niveaux (10+) sont complétés → affichage "Victory"
+- [x] Quand le joueur perd toutes ses vies → affichage "Game Over"
+- [x] À la fin, affichage du score final
+- [x] Prompt pour entrer le nom du joueur
 
 ---
 
@@ -213,7 +213,7 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 6.2 Gestion des scores
 
-- [ ] Quand le jeu se termine (victoire ou défaite), prompt pour entrer le nom
+- [x] Quand le jeu se termine (victoire ou défaite), prompt pour entrer le nom
 - [x] Maximum 10 caractères alphanumériques + espaces
 - [x] Si le score est top 10, il est sauvegardé
 - [x] Les 10 meilleurs scores sont conservés
@@ -221,11 +221,6 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 
 ### 6.3 Affichage des highscores
 
-- [ ] Menu principal affiche option "View Highscores"
-- [ ] Cliquer affiche les top 10 scores avec noms
-- [ ] Format clair: Rank | Name | Score
-- [ ] Classement par score décroissant
-- [ ] Retour au menu principal depuis highscores
 - [x] Menu principal affiche option "View Highscores"
 - [x] Cliquer affiche les top 10 scores avec noms
 - [x] Format clair: Rank | Name | Score
@@ -246,14 +241,12 @@ Ce document fournit une **checklist complète** pour valider que le projet respe
 ### 7.1 Menu principal
 
 - [x] Menu visible au démarrage
-- [ ] Options claires et lisibles:
+- [x] Options claires et lisibles:
   - [x] "Start Game"
   - [x] "View Highscores"
   - [x] "Instructions"
   - [x] "Exit"
 - [x] Navigation avec flèches haut/bas
-- [ ] Sélection avec Entrée
-- [ ] "Exit" ferme le jeu correctement
 - [x] Sélection avec Entrée
 - [x] "Exit" ferme le jeu correctement
 
@@ -290,25 +283,20 @@ Visible en permanence pendant le jeu:
 
 ### 7.5 Écran de game-over
 
-- [ ] Affichage clair du score final
-- [ ] Message: "Game Over" ou "You Lost"
-- [ ] Prompt pour entrer le nom
-- [ ] Après saisie du nom, retour au menu principal
+- [x] Affichage clair du score final
+- [x] Message: "Game Over" ou "You Lost"
+- [x] Prompt pour entrer le nom
+- [x] Après saisie du nom, retour au menu principal
 
 ### 7.6 Écran de victoire
 
-- [ ] Affichage clair du score final
-- [ ] Message de félicitations: "Victory!" ou "You Won!"
-- [ ] Prompt pour entrer le nom
-- [ ] Après saisie du nom, retour au menu principal
+- [x] Affichage clair du score final
+- [x] Message de félicitations: "Victory!" ou "You Won!"
+- [x] Prompt pour entrer le nom
+- [x] Après saisie du nom, retour au menu principal
 
 ### 7.7 Instructions
 
-- [ ] Menu principal affiche option "Instructions"
-- [ ] Explique les contrôles
-- [ ] Explique l'objectif du jeu
-- [ ] Explique les règles basiques
-- [ ] Retour au menu avec une touche
 - [x] Menu principal affiche option "Instructions"
 - [x] Explique les contrôles
 - [x] Explique l'objectif du jeu

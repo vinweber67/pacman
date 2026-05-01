@@ -1,9 +1,11 @@
 """Tests for game loop and level progression."""
 
+from src.entities.pellet import Pellet
 from src.game.game_loop import GameLoop
 from src.game.game_manager import GameManager
 from src.game.game_state import GameState
 from src.game.level_manager import LevelManager
+from src.input.key_bindings import Action
 
 
 CONFIG = {
@@ -116,3 +118,98 @@ class TestGameManagerIntegration:
             entry.name == "ALICE" and entry.score == 123
             for entry in manager.highscore_manager.scores
         )
+
+    def test_game_over_name_entry_saves_and_returns_menu(self) -> None:
+        """Submitting name on end scene saves score and returns to menu."""
+        manager = GameManager(CONFIG)
+        manager.start_game()
+        manager.state.score = 456
+        manager._show_end_scene("GAME OVER")
+
+        for key in [ord("B"), ord("O"), ord("B"), ord("\r")]:
+            manager.handle_input(key)
+
+        assert manager.ui_manager.current_scene_name == "menu"
+        assert any(
+            entry.name == "BOB" and entry.score == 456
+            for entry in manager.highscore_manager.scores
+        )
+
+    def test_super_pellet_makes_ghosts_edible(self) -> None:
+        """Eating a super pellet increases score and enables edible mode."""
+        manager = GameManager(CONFIG)
+        manager.start_game()
+        assert manager.current_level is not None
+
+        level = manager.current_level
+        pacman = level.pacman
+        neighbors = level.maze.get_neighbors(pacman.x, pacman.y)
+        assert neighbors
+        target = neighbors[0]
+
+        level.pellets = [Pellet(target[0], target[1], is_super=True)]
+        previous_score = manager.state.score
+        if target[0] > pacman.x:
+            action = Action.MOVE_RIGHT
+        elif target[0] < pacman.x:
+            action = Action.MOVE_LEFT
+        elif target[1] > pacman.y:
+            action = Action.MOVE_DOWN
+        else:
+            action = Action.MOVE_UP
+        manager._move_pacman(action)
+
+        assert manager.state.score == (
+            previous_score + 50
+        )
+        assert all(ghost.is_edible for ghost in level.ghosts)
+
+    def test_edible_ghost_collision_respawns(self) -> None:
+        """Colliding with edible ghost awards score and triggers respawn."""
+        manager = GameManager(CONFIG)
+        manager.start_game()
+        assert manager.current_level is not None
+
+        level = manager.current_level
+        ghost = level.ghosts[0]
+        ghost.move_to(level.pacman.x, level.pacman.y)
+        ghost.become_edible(2.0)
+
+        previous_score = manager.state.score
+        manager._check_ghost_collisions()
+
+        assert manager.state.score == (
+            previous_score + 200
+        )
+        assert ghost.is_respawning is True
+
+    def test_non_edible_ghost_collision_costs_life(self) -> None:
+        """Colliding with a normal ghost should consume one life."""
+        manager = GameManager(CONFIG)
+        manager.start_game()
+        assert manager.current_level is not None
+
+        level = manager.current_level
+        ghost = level.ghosts[0]
+        ghost.move_to(level.pacman.x, level.pacman.y)
+
+        previous_lives = manager.state.lives
+        manager._check_ghost_collisions()
+        assert manager.state.lives == previous_lives - 1
+        center = level.maze.get_center()
+        assert manager.state.pacman_position == center
+
+    def test_last_life_collision_shows_game_over(self) -> None:
+        """Collision on last life opens the game over scene."""
+        manager = GameManager(CONFIG)
+        manager.start_game()
+        assert manager.current_level is not None
+
+        manager.state.lives = 1
+        level = manager.current_level
+        ghost = level.ghosts[0]
+        ghost.move_to(level.pacman.x, level.pacman.y)
+
+        manager._check_ghost_collisions()
+        assert manager.state.is_game_over is True
+        assert manager.ui_manager.current_scene_name == "game_over"

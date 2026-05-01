@@ -51,7 +51,10 @@ class LevelManager:
         ghosts = MazeGenerator.place_ghosts(maze)
         pellets = MazeGenerator.place_pellets(
             maze,
-            {"pacgum_count": self.config.get("pacgum_count", 42)},
+            {
+                "pacgum_count": self.config.get("pacgum_count", 42),
+                "seed": seed,
+            },
         )
 
         self.state.current_level = level_number

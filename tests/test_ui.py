@@ -2,6 +2,7 @@
 
 from src.ui.colors import COLORS
 from src.ui.renderer import Renderer
+from src.ui.scenes.game_over import GameOverScene
 from src.ui.scenes.main_menu import MainMenuScene
 from src.ui.ui_manager import UIManager
 from src.utils.constants import Color
@@ -38,6 +39,19 @@ class TestScenes:
         assert menu.selected == 1
         menu.handle_input(65362)
         assert menu.selected == 0
+
+    def test_game_over_name_submission(self) -> None:
+        """Game over scene captures and submits player names."""
+        scene = GameOverScene()
+        scene.on_enter()
+        scene.handle_input(ord("A"))
+        scene.handle_input(ord("L"))
+        scene.handle_input(ord("I"))
+        scene.handle_input(ord("C"))
+        scene.handle_input(ord("E"))
+        scene.handle_input(ord("\r"))
+        assert scene.consume_submitted_name() == "ALICE"
+        assert scene.consume_submitted_name() is None
 
 
 class TestUIManager:

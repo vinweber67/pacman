@@ -28,6 +28,17 @@ class TestMaze:
         neighbors = maze.get_neighbors(2, 2)
         assert len(neighbors) == 4
 
+    def test_wall_mask_blocks_movement(self) -> None:
+        """Wall mask blocks adjacency even on walkable tiles."""
+        maze = Maze(3, 3)
+        # Block east from center and matching west on neighbor.
+        maze.wall_mask[1][1] = 2
+        maze.wall_mask[1][2] = 8
+
+        assert maze.can_move(1, 1, 2, 1) is False
+        neighbors = maze.get_neighbors(1, 1)
+        assert (2, 1) not in neighbors
+
 
 class TestMazeGenerator:
     """Maze generation tests."""

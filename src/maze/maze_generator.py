@@ -147,6 +147,8 @@ class MazeGenerator:
         """Place pellets in walkable tiles."""
         pellets: List[Pellet] = []
         max_pellets = int(config.get("pacgum_count", 42))
+        seed = int(config.get("seed", 0))
+        rng = random.Random(seed)
         center = maze.get_center()
 
         super_candidates = [
@@ -164,15 +166,48 @@ class MazeGenerator:
         if len(pellets) >= max_pellets:
             return pellets[:max_pellets]
 
+        candidates: list[tuple[int, int]] = []
         for y in range(maze.height):
             for x in range(maze.width):
-                if len(pellets) >= max_pellets:
-                    return pellets
                 if not maze.is_walkable(x, y):
                     continue
                 if (x, y) in super_positions or (x, y) == center:
                     continue
+                candidates.append((x, y))
+
+        remaining = max_pellets - len(pellets)
+        if remaining <= 0 or not candidates:
+            return pellets
+
+        if remaining >= len(candidates):
+            for x, y in candidates:
                 pellets.append(Pellet(x, y))
+            return pellets
+
+        rng.shuffle(candidates)
+        selected: list[tuple[int, int]] = [candidates[0]]
+        selected_set = {candidates[0]}
+
+        while len(selected) < remaining:
+            best_pos: tuple[int, int] | None = None
+            best_distance = -1
+            for candidate in candidates:
+                if candidate in selected_set:
+                    continue
+                distance = min(
+                    abs(candidate[0] - sx) + abs(candidate[1] - sy)
+                    for sx, sy in selected
+                )
+                if distance > best_distance:
+                    best_distance = distance
+                    best_pos = candidate
+            if best_pos is None:
+                break
+            selected.append(best_pos)
+            selected_set.add(best_pos)
+
+        for x, y in selected:
+            pellets.append(Pellet(x, y))
         return pellets
 
     @staticmethod

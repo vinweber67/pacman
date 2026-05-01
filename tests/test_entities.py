@@ -51,6 +51,14 @@ class TestGhost:
         assert ghost.is_edible is True
         assert ghost.edible_timer == 5.0
 
+    def test_edible_timeout_expires(self) -> None:
+        """Edible flag resets after timer expiration."""
+        ghost = Ghost(GhostType.PINKY, 1, 2)
+        ghost.become_edible(0.2)
+        ghost.update(0.3)
+        assert ghost.is_edible is False
+        assert ghost.edible_timer == 0.0
+
     def test_respawn(self) -> None:
         """Ghost respawns on its spawn point."""
         ghost = Ghost(GhostType.INKY, 1, 2)
@@ -60,6 +68,17 @@ class TestGhost:
         assert ghost.position == (1, 2)
         assert ghost.is_edible is False
         assert ghost.edible_timer == 0.0
+
+    def test_start_respawn_delay(self) -> None:
+        """Ghost hidden during respawn delay returns to spawn when done."""
+        ghost = Ghost(GhostType.INKY, 1, 2)
+        ghost.start_respawn(0.2)
+        assert ghost.is_respawning is True
+        assert ghost.position == (-1, -1)
+
+        ghost.update(0.3)
+        assert ghost.is_respawning is False
+        assert ghost.position == (1, 2)
 
 
 class TestPellet:

@@ -124,7 +124,6 @@ class GameManager:
 
             self.state.lose_life()
             if self.state.is_game_over:
-                self.finish_game("PLAYER")
                 self._show_end_scene("GAME OVER")
                 return
 
@@ -142,6 +141,17 @@ class GameManager:
         """Handle raw input events."""
         action = InputHandler.key_to_action(key)
         scene_name = self.ui_manager.current_scene_name
+
+        if scene_name == "game_over":
+            self.ui_manager.handle_input(key)
+            scene = self.ui_manager.current_scene
+            consume_name = getattr(scene, "consume_submitted_name", None)
+            if callable(consume_name):
+                submitted_name = consume_name()
+                if submitted_name is not None:
+                    self.finish_game(submitted_name)
+                    self.ui_manager.switch_scene("menu")
+            return
 
         if key in (27, 65307):
             if scene_name in {"highscores", "instructions", "game_over"}:
@@ -205,7 +215,7 @@ class GameManager:
             selected_option = options[selected]
             if selected_option == "Start Game":
                 self.start_game()
-            elif selected_option == "Highscores":
+            elif selected_option in {"Highscores", "View Highscores"}:
                 self._open_highscores()
             elif selected_option == "Instructions":
                 self.ui_manager.switch_scene("instructions")
@@ -258,7 +268,7 @@ class GameManager:
         next_x = pacman.x + move[0]
         next_y = pacman.y + move[1]
 
-        if not maze.is_walkable(next_x, next_y):
+        if not maze.can_move(pacman.x, pacman.y, next_x, next_y):
             return
 
         pacman.move_to(next_x, next_y)
@@ -310,7 +320,6 @@ class GameManager:
             self.current_level = self.level_manager.advance_level()
             return
 
-        self.finish_game("PLAYER")
         self._show_end_scene("VICTORY")
 
     @staticmethod
