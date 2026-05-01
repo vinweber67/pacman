@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 import sys
 from importlib import import_module
 from pathlib import Path
@@ -20,6 +21,8 @@ WHEEL_PATH = Path(__file__).resolve().parents[2] / "4 Pacman - data.whl"
 
 class MazeGenerator:
     """Create mazes and populate them with gameplay items."""
+
+    _external_class: Any = None
 
     @staticmethod
     def generate(width: int, height: int, seed: int) -> Maze:
@@ -44,18 +47,64 @@ class MazeGenerator:
             if wheel_path not in sys.path:
                 sys.path.insert(0, wheel_path)
 
-            external_module = import_module("mazegenerator.mazegenerator")
-            external_class = getattr(external_module, "MazeGenerator")
-            generator = external_class(
-                size=(width, height),
-                perfect=False,
-                seed=seed,
+            if MazeGenerator._external_class is None:
+                external_module = import_module("mazegenerator.mazegenerator")
+                MazeGenerator._external_class = getattr(
+                    external_module,
+                    "MazeGenerator",
+                )
+
+            return MazeGenerator._fast_generate_external_maze(
+                MazeGenerator._external_class,
+                width,
+                height,
+                seed,
             )
-            return cast(list[list[int]], generator.maze)
         except Exception as error:
             raise MazeGenerationError(
                 f"Unable to load maze from wheel: {error}"
             ) from error
+
+    @staticmethod
+    def _fast_generate_external_maze(
+        external_class: Any,
+        width: int,
+        height: int,
+        seed: int,
+    ) -> list[list[int]]:
+        """Generate maze while skipping expensive shortest-path computation.
+
+        The assigned package computes shortest path in constructor.
+        That path is not required for gameplay and can add latency.
+        This adapter path keeps package methods untouched.
+        It falls back to the constructor path if the internal API differs.
+        """
+        try:
+            generator = external_class.__new__(external_class)
+            generator._width = width
+            generator._height = height
+            generator._perfect = False
+            generator._seed = seed
+            generator._entryx = 0
+            generator._entryy = 0
+            generator._exitx = width - 1
+            generator._exity = height - 1
+            generator._maze = []
+            generator._path = []
+            generator._shortest_path = False
+
+            random.seed(seed) if seed > 0 else random.seed()
+            generator._create_empty_maze()
+            generator._add_42_to_maze()
+            generator._generate_maze(generator._entryx, generator._entryy, 0)
+            return cast(list[list[int]], generator.maze)
+        except Exception:
+            fallback = external_class(
+                size=(width, height),
+                perfect=False,
+                seed=seed,
+            )
+            return cast(list[list[int]], fallback.maze)
 
     @staticmethod
     def _convert_external_maze(external_maze: list[list[int]]) -> Maze:
