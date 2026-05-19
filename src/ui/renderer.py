@@ -27,6 +27,7 @@ class Renderer:
         self._pygame: Optional[Any] = None
         self.screen: Optional[Any] = None
         self._font: Optional[Any] = None
+        self._fonts: dict[tuple[str, int, bool], Any] = {}
         self._backend = "headless"
 
         try:
@@ -53,7 +54,12 @@ class Renderer:
             self._font = self._pygame.font.SysFont("Arial", 20)
             self._backend = "pygame"
             logger.info("Using pygame backend")
-        except (AttributeError, OSError, RuntimeError, pygame_error) as error:  # type: ignore[misc]
+        except (
+            AttributeError,
+            OSError,
+            RuntimeError,
+            pygame_error,
+        ) as error:  # type: ignore[misc]
             self._pygame = None
             self.screen = None
             self._font = None
@@ -62,6 +68,27 @@ class Renderer:
                 "Unable to start pygame backend (%s), running headless",
                 error,
             )
+
+    def _get_font(
+        self, font_name: str, size: int, bold: bool = False
+    ) -> Optional[Any]:
+        """Get or load a font from the font cache."""
+        if self._pygame is None:
+            return None
+        key = (font_name, size, bold)
+        if key not in self._fonts:
+            try:
+                self._fonts[key] = self._pygame.font.SysFont(
+                    font_name, size, bold=bold
+                )
+            except Exception:
+                try:
+                    self._fonts[key] = self._pygame.font.SysFont(
+                        "Arial", size, bold=bold
+                    )
+                except Exception:
+                    return self._font
+        return self._fonts[key]
 
     def is_headless(self) -> bool:
         """Return whether the renderer has no graphical backend."""
@@ -108,17 +135,35 @@ class Renderer:
             self._pygame.Rect(int(x), int(y), int(width), int(height)),
         )
 
+    def draw_transparent_overlay(
+        self, color_with_alpha: Tuple[int, int, int, int]
+    ) -> None:
+        """Draw a full-screen semi-transparent overlay."""
+        if self.screen is None or self._pygame is None:
+            return
+        overlay = self._pygame.Surface(
+            (self.width, self.height), self._pygame.SRCALPHA
+        )
+        overlay.fill(color_with_alpha)
+        self.screen.blit(overlay, (0, 0))
+
     def draw_text(
         self,
         x: int,
         y: int,
         text: str,
         color: Tuple[int, int, int],
+        size: int = 20,
+        font_name: str = "Arial",
+        bold: bool = False,
     ) -> None:
         """Draw text when backend supports it."""
-        if self.screen is None or self._font is None:
+        if self.screen is None:
             return
-        text_surface = self._font.render(text, True, color)
+        font = self._get_font(font_name, size, bold)
+        if font is None:
+            return
+        text_surface = font.render(text, True, color)
         self.screen.blit(text_surface, (int(x), int(y)))
 
     def draw_circle(

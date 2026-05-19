@@ -46,6 +46,8 @@ class UIManager:
 
     def render(self) -> None:
         """Render active scene."""
+        if self.current_scene_name in ("pause", "game_over"):
+            self.scenes["game"].render(self.renderer)
         self.current_scene.render(self.renderer)
         self.renderer.present()
 

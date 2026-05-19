@@ -12,6 +12,26 @@ from src.ui.renderer import Renderer
 from src.ui.scenes.scene import Scene
 
 
+class Particle:
+    """A visual particle effect for eating pellets."""
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        vx: float,
+        vy: float,
+        color: tuple[int, int, int],
+        lifetime: float,
+    ) -> None:
+        self.x = x
+        self.y = y
+        self.vx = vx
+        self.vy = vy
+        self.color = color
+        self.lifetime = lifetime
+        self.max_lifetime = lifetime
+
+
 class GameScene(Scene):
     """Gameplay scene with enriched visual rendering."""
 
@@ -27,9 +47,16 @@ class GameScene(Scene):
             float(self.state.pacman_position[1]),
         )
         self._ghost_render_positions: list[tuple[float, float]] = []
+        self._particles: list[Particle] = []
+        self._last_pellets: set[tuple[int, int]] = set()
 
     def on_enter(self) -> None:
         """Prepare gameplay rendering state."""
+        self._particles = []
+        self._last_pellets = (
+            set(self.state.pellet_positions)
+            | set(self.state.super_pellet_positions)
+        )
         return None
 
     def on_exit(self) -> None:
@@ -41,6 +68,45 @@ class GameScene(Scene):
         self._anim_time += max(0.0, delta_time)
         self._update_pacman_render_position(delta_time)
         self._update_ghost_render_positions(delta_time)
+        self._update_particles(delta_time)
+        self._check_eaten_pellets()
+
+    def _update_particles(self, delta_time: float) -> None:
+        """Move and fade out visual particles."""
+        for p in self._particles:
+            p.x += p.vx * delta_time
+            p.y += p.vy * delta_time
+            p.lifetime -= delta_time
+        self._particles = [p for p in self._particles if p.lifetime > 0.0]
+
+    def _check_eaten_pellets(self) -> None:
+        """Spawn particle sparks when pellets disappear."""
+        current_pellets = (
+            set(self.state.pellet_positions)
+            | set(self.state.super_pellet_positions)
+        )
+        eaten = self._last_pellets - current_pellets
+        if eaten:
+            import random
+            for px, py in eaten:
+                for _ in range(8):
+                    angle = random.uniform(0, 2 * math.pi)
+                    speed = random.uniform(1.5, 4.0)
+                    vx = math.cos(angle) * speed
+                    vy = math.sin(angle) * speed
+                    is_super = (px, py) in self.state.super_pellet_positions
+                    color = (150, 220, 255) if is_super else (255, 230, 130)
+                    self._particles.append(
+                        Particle(
+                            px + 0.5,
+                            py + 0.5,
+                            vx,
+                            vy,
+                            color,
+                            random.uniform(0.2, 0.5),
+                        )
+                    )
+        self._last_pellets = current_pellets
 
     def _update_pacman_render_position(self, delta_time: float) -> None:
         """Interpolate Pac-Man render position for smoother motion."""
@@ -90,12 +156,17 @@ class GameScene(Scene):
         travel = max(0.0, delta_time) * tiles_per_second
         next_positions: list[tuple[float, float]] = []
 
-        for current, target in zip(self._ghost_render_positions, target_positions):
+        zipped_ghosts = zip(
+            self._ghost_render_positions, target_positions
+        )
+        for current, target in zipped_ghosts:
             current_x, current_y = current
             target_x, target_y = float(target[0]), float(target[1])
 
             # Snap on large discontinuities to avoid long lerps.
-            if abs(target_x - current_x) > 1.5 or abs(target_y - current_y) > 1.5:
+            large_x = abs(target_x - current_x) > 1.5
+            large_y = abs(target_y - current_y) > 1.5
+            if large_x or large_y:
                 next_positions.append((target_x, target_y))
                 continue
 
@@ -163,7 +234,12 @@ class GameScene(Scene):
                 (math.sin(self._anim_time * 1.8 + index * 0.9) + 1.0) / 2.0
             )
             brightness = int(90 + 120 * twinkle)
-            renderer.draw_circle(x, y, 1, (brightness, brightness, min(255, brightness + 25)))
+            renderer.draw_circle(
+                x,
+                y,
+                1,
+                (brightness, brightness, min(255, brightness + 25)),
+            )
 
     def _draw_maze(
         self,
@@ -177,11 +253,32 @@ class GameScene(Scene):
         if maze is None:
             return
 
-        wall_color = (20, 92, 255)
-        wall_glow = (90, 160, 255)
-        wall_shadow = (8, 38, 120)
-        floor_a = (11, 15, 30)
-        floor_b = (13, 18, 34)
+        # Level-specific neon palettes
+        palettes = [
+            # Blue (Level 1)
+            ((20, 92, 255), (90, 160, 255), (8, 38, 120)),
+            # Magenta (Level 2)
+            ((255, 20, 147), (255, 120, 190), (120, 8, 60)),
+            # Green (Level 3)
+            ((0, 230, 110), (100, 255, 170), (0, 90, 40)),
+            # Orange (Level 4)
+            ((255, 110, 0), (255, 180, 80), (120, 40, 0)),
+            # Purple (Level 5)
+            ((150, 40, 255), (200, 130, 255), (60, 8, 120)),
+            # Cyan (Level 6)
+            ((0, 240, 240), (140, 255, 255), (0, 100, 100)),
+        ]
+        palette_idx = (max(1, self.state.current_level) - 1) % len(palettes)
+        wall_color, wall_glow, wall_shadow = palettes[palette_idx]
+
+        # Dark base color tinted with wall_color
+        tint_r = wall_color[0] // 20
+        tint_g = wall_color[1] // 20
+        tint_b = wall_color[2] // 20
+
+        floor_a = (8 + tint_r, 10 + tint_g, 18 + tint_b)
+        floor_b = (11 + tint_r, 13 + tint_g, 24 + tint_b)
+        grid_color = (16 + tint_r * 2, 20 + tint_g * 2, 36 + tint_b * 2)
         thickness = max(1, tile_size // 8)
 
         has_wall_mask = (
@@ -194,78 +291,216 @@ class GameScene(Scene):
                 px = offset_x + x * tile_size
                 py = offset_y + y * tile_size
 
-                floor_color = floor_a if (x + y) % 2 == 0 else floor_b
-                renderer.draw_rect(px, py, tile_size, tile_size, floor_color)
+                if maze.tiles[y][x] != TileType.WALL:
+                    # Alternating dark grid floor squares
+                    floor_color = floor_a if (x + y) % 2 == 0 else floor_b
+                    renderer.draw_rect(
+                        px, py, tile_size, tile_size, floor_color
+                    )
+                    # Subtle floor grid borders (top and left)
+                    renderer.draw_line(
+                        px, py, px + tile_size, py, grid_color, 1
+                    )
+                    renderer.draw_line(
+                        px, py, px, py + tile_size, grid_color, 1
+                    )
+
+                # Draw high-tech vector crosses at open intersections
+                if has_wall_mask and x > 0 and y > 0:
+                    corner_w = False
+                    # check tile (x, y)
+                    m = maze.wall_mask[y][x]
+                    if (m & 1) or (m & 8):
+                        corner_w = True
+                    # check tile (x-1, y)
+                    if not corner_w:
+                        ml = maze.wall_mask[y][x - 1]
+                        if (ml & 1) or (ml & 2):
+                            corner_w = True
+                    # check tile (x, y-1)
+                    if not corner_w:
+                        mu = maze.wall_mask[y - 1][x]
+                        if (mu & 4) or (mu & 8):
+                            corner_w = True
+                    # check tile (x-1, y-1)
+                    if not corner_w:
+                        mlu = maze.wall_mask[y - 1][x - 1]
+                        if (mlu & 4) or (mlu & 2):
+                            corner_w = True
+
+                    if not corner_w:
+                        cx_c = (
+                            30 + tint_r * 4,
+                            40 + tint_g * 4,
+                            70 + tint_b * 4,
+                        )
+                        renderer.draw_line(
+                            px - 3, py, px + 3, py, cx_c, 1
+                        )
+                        renderer.draw_line(
+                            px, py - 3, px, py + 3, cx_c, 1
+                        )
 
                 if has_wall_mask:
                     mask = maze.wall_mask[y][x]
+                    # Draw wall segments
                     if mask & 1:
-                        renderer.draw_rect(
-                            px,
-                            py,
-                            tile_size,
-                            thickness,
-                            wall_color,
+                        # Top wall
+                        x1, y1 = px, py
+                        x2, y2 = px + tile_size, py
+                        renderer.draw_line(
+                            x1, y1, x2, y2, wall_shadow, thickness + 3
                         )
-                        renderer.draw_rect(
-                            px,
-                            py,
-                            tile_size,
-                            max(1, thickness // 2),
+                        renderer.draw_line(
+                            x1, y1, x2, y2, wall_color, thickness
+                        )
+                        renderer.draw_line(
+                            x1,
+                            y1,
+                            x2,
+                            y2,
                             wall_glow,
+                            max(1, thickness // 2),
                         )
                     if mask & 2:
-                        renderer.draw_rect(
-                            px + tile_size - thickness,
-                            py,
-                            thickness,
-                            tile_size,
-                            wall_color,
+                        # Right wall
+                        x1, y1 = px + tile_size, py
+                        x2, y2 = px + tile_size, py + tile_size
+                        renderer.draw_line(
+                            x1, y1, x2, y2, wall_shadow, thickness + 3
                         )
-                        renderer.draw_rect(
-                            px + tile_size - max(1, thickness // 2),
-                            py,
+                        renderer.draw_line(
+                            x1, y1, x2, y2, wall_color, thickness
+                        )
+                        renderer.draw_line(
+                            x1,
+                            y1,
+                            x2,
+                            y2,
+                            wall_glow,
                             max(1, thickness // 2),
-                            tile_size,
-                            wall_shadow,
                         )
                     if mask & 4:
-                        renderer.draw_rect(
-                            px,
-                            py + tile_size - thickness,
-                            tile_size,
-                            thickness,
-                            wall_color,
+                        # Bottom wall
+                        x1, y1 = px, py + tile_size
+                        x2, y2 = px + tile_size, py + tile_size
+                        renderer.draw_line(
+                            x1, y1, x2, y2, wall_shadow, thickness + 3
                         )
-                        renderer.draw_rect(
-                            px,
-                            py + tile_size - max(1, thickness // 2),
-                            tile_size,
+                        renderer.draw_line(
+                            x1, y1, x2, y2, wall_color, thickness
+                        )
+                        renderer.draw_line(
+                            x1,
+                            y1,
+                            x2,
+                            y2,
+                            wall_glow,
                             max(1, thickness // 2),
-                            wall_shadow,
                         )
                     if mask & 8:
-                        renderer.draw_rect(
-                            px,
+                        # Left wall
+                        x1, y1 = px, py
+                        x2, y2 = px, py + tile_size
+                        renderer.draw_line(
+                            x1, y1, x2, y2, wall_shadow, thickness + 3
+                        )
+                        renderer.draw_line(
+                            x1, y1, x2, y2, wall_color, thickness
+                        )
+                        renderer.draw_line(
+                            x1,
+                            y1,
+                            x2,
+                            y2,
+                            wall_glow,
+                            max(1, thickness // 2),
+                        )
+
+                    # Draw round joints at active wall corner points
+                    # Top-Left corner
+                    if (mask & 1) or (mask & 8):
+                        renderer.draw_circle(
+                            px, py, thickness // 2 + 1, wall_shadow
+                        )
+                        renderer.draw_circle(
+                            px, py, thickness // 2, wall_color
+                        )
+                        renderer.draw_circle(
+                            px, py, max(1, thickness // 4), wall_glow
+                        )
+                    # Top-Right corner
+                    if (mask & 1) or (mask & 2):
+                        renderer.draw_circle(
+                            px + tile_size,
                             py,
-                            thickness,
-                            tile_size,
+                            thickness // 2 + 1,
+                            wall_shadow,
+                        )
+                        renderer.draw_circle(
+                            px + tile_size, py, thickness // 2, wall_color
+                        )
+                        renderer.draw_circle(
+                            px + tile_size,
+                            py,
+                            max(1, thickness // 4),
+                            wall_glow,
+                        )
+                    # Bottom-Right corner
+                    if (mask & 4) or (mask & 2):
+                        renderer.draw_circle(
+                            px + tile_size,
+                            py + tile_size,
+                            thickness // 2 + 1,
+                            wall_shadow,
+                        )
+                        renderer.draw_circle(
+                            px + tile_size,
+                            py + tile_size,
+                            thickness // 2,
                             wall_color,
                         )
-                        renderer.draw_rect(
+                        renderer.draw_circle(
+                            px + tile_size,
+                            py + tile_size,
+                            max(1, thickness // 4),
+                            wall_glow,
+                        )
+                    # Bottom-Left corner
+                    if (mask & 4) or (mask & 8):
+                        renderer.draw_circle(
                             px,
-                            py,
-                            max(1, thickness // 2),
-                            tile_size,
+                            py + tile_size,
+                            thickness // 2 + 1,
+                            wall_shadow,
+                        )
+                        renderer.draw_circle(
+                            px,
+                            py + tile_size,
+                            thickness // 2,
+                            wall_color,
+                        )
+                        renderer.draw_circle(
+                            px,
+                            py + tile_size,
+                            max(1, thickness // 4),
                             wall_glow,
                         )
                 elif maze.tiles[y][x] == TileType.WALL:
+                    # High-tech solid wall block with neon borders
                     renderer.draw_rect(
-                        px,
-                        py,
-                        tile_size,
-                        tile_size,
-                        (10, 35, 160),
+                        px, py, tile_size, tile_size, wall_color
+                    )
+                    renderer.draw_rect(
+                        px + 1, py + 1, tile_size - 2, tile_size - 2, wall_glow
+                    )
+                    dm = max(2, thickness)
+                    renderer.draw_rect(
+                        px + dm,
+                        py + dm,
+                        tile_size - 2 * dm,
+                        tile_size - 2 * dm,
+                        (10 + tint_r, 12 + tint_g, 22 + tint_b),
                     )
 
     def _draw_pellets(
@@ -280,8 +515,12 @@ class GameScene(Scene):
             cx = offset_x + pellet_x * tile_size + tile_size // 2
             cy = offset_y + pellet_y * tile_size + tile_size // 2
             radius = max(2, tile_size // 8)
-            renderer.draw_circle(cx, cy, radius + 1, (255, 245, 190))
-            renderer.draw_circle(cx, cy, radius, (255, 230, 130))
+            # Glowing amber halo
+            renderer.draw_circle(cx, cy, radius + 2, (120, 95, 20))
+            # Gold body
+            renderer.draw_circle(cx, cy, radius, (255, 215, 50))
+            # Bright core
+            renderer.draw_circle(cx, cy, max(1, radius - 1), (255, 255, 210))
 
         pulse = (math.sin(self._anim_time * 6.0) + 1.0) / 2.0
         for pellet_x, pellet_y in self.state.super_pellet_positions:
@@ -289,8 +528,13 @@ class GameScene(Scene):
             cy = offset_y + pellet_y * tile_size + tile_size // 2
             base = max(4, tile_size // 4)
             radius = int(base + pulse * max(2, tile_size // 10))
-            renderer.draw_circle(cx, cy, radius + 4, (80, 110, 180))
-            renderer.draw_circle(cx, cy, radius + 1, (220, 240, 255))
+
+            # Faint blue bloom
+            bloom_r = int((radius + 5) + pulse * 3)
+            renderer.draw_circle(cx, cy, bloom_r, (30, 45, 110))
+            # Cyan ring
+            renderer.draw_circle(cx, cy, radius + 2, (0, 230, 255))
+            # White core
             renderer.draw_circle(cx, cy, radius, (255, 255, 255))
 
     def _update_pacman_facing(self) -> None:
@@ -315,7 +559,7 @@ class GameScene(Scene):
         offset_y: int,
         tile_size: int,
     ) -> None:
-        """Draw Pac-Man with a simple mouth animation."""
+        """Draw Pac-Man with mouth animations and dynamic eye placement."""
         self._update_pacman_facing()
         pacman_x, pacman_y = self._pacman_render_pos
         cx = int(round(offset_x + pacman_x * tile_size + tile_size / 2))
@@ -329,15 +573,21 @@ class GameScene(Scene):
             renderer.draw_circle(cx, cy, glow_radius, (95, 150, 255))
 
         renderer.draw_circle(cx, cy, radius, (255, 220, 20))
-        renderer.draw_circle(
-            cx - radius // 4,
-            cy - radius // 4,
-            1,
-            (140, 90, 10),
-        )
 
-        openness = 0.16 + 0.24 * abs(math.sin(self._anim_time * 10.0))
+        # Dynamic eye position based on moving direction
         mx, my = self._pacman_dir
+        if mx == 1:       # Right
+            ex, ey = cx + radius // 5, cy - radius // 3
+        elif mx == -1:   # Left
+            ex, ey = cx - radius // 5, cy - radius // 3
+        elif my == -1:   # Up
+            ex, ey = cx + radius // 3, cy - radius // 5
+        else:            # Down
+            ex, ey = cx + radius // 3, cy + radius // 5
+        renderer.draw_circle(ex, ey, max(1, radius // 7), (140, 90, 10))
+
+        # Mouth opening/closing animation
+        openness = 0.16 + 0.24 * abs(math.sin(self._anim_time * 12.0))
         tip = (cx + int(mx * (radius + 2)), cy + int(my * (radius + 2)))
         side_x = -my
         side_y = mx
@@ -362,7 +612,7 @@ class GameScene(Scene):
         offset_y: int,
         tile_size: int,
     ) -> None:
-        """Draw ghosts with body, eyes and pupils."""
+        """Draw ghosts with animations, direction, and expressions."""
         ghost_colors = [
             (255, 60, 60),
             (255, 170, 235),
@@ -401,6 +651,7 @@ class GameScene(Scene):
             center_x = gx + tile_size // 2
             center_y = gy + max(3, tile_size // 2 - 1)
 
+            # Shadow below the ghost
             renderer.draw_circle(
                 center_x,
                 gy + tile_size - max(2, tile_size // 8),
@@ -408,32 +659,119 @@ class GameScene(Scene):
                 (14, 16, 28),
             )
 
+            # Draw body (semicircle + main rect body)
             renderer.draw_circle(center_x, center_y, radius, color)
+            rect_h = tile_size // 2 - max(1, tile_size // 8)
             renderer.draw_rect(
-                gx,
-                gy + tile_size // 2,
-                tile_size,
-                tile_size // 2,
+                gx + (tile_size - 2 * radius) // 2,
+                center_y,
+                2 * radius,
+                rect_h,
                 color,
             )
 
+            # Draw wavy feet (scallops)
+            feet_y = center_y + rect_h
+            num_waves = 3
+            wave_w = (2 * radius) / num_waves
+            for i in range(num_waves):
+                foot_cx = (
+                    gx + (tile_size - 2 * radius) // 2 + (i + 0.5) * wave_w
+                )
+                foot_offset = math.sin(
+                    self._anim_time * 12.0 + i * 2.0 + index
+                ) * (tile_size // 12)
+                renderer.draw_circle(
+                    int(foot_cx),
+                    int(feet_y + foot_offset),
+                    int(wave_w / 2 + 1),
+                    color,
+                )
+
+            # Draw eyes
             eye_y = gy + max(3, tile_size // 2)
             left_eye_x = gx + tile_size // 3
             right_eye_x = gx + (2 * tile_size) // 3
             eye_r = max(2, tile_size // 6)
             pupil_r = max(1, eye_r // 2)
-            renderer.draw_circle(left_eye_x, eye_y, eye_r, (255, 255, 255))
-            renderer.draw_circle(right_eye_x, eye_y, eye_r, (255, 255, 255))
-            pupil_color = (200, 40, 40) if is_edible else (20, 40, 180)
-            renderer.draw_circle(left_eye_x + 1, eye_y, pupil_r, pupil_color)
-            renderer.draw_circle(
-                right_eye_x + 1,
-                eye_y,
-                pupil_r,
-                pupil_color,
-            )
 
-        for index, (ghost_x, ghost_y) in enumerate(self.state.ghost_respawn_positions):
+            # Compute look direction
+            look_dx, look_dy = 0.0, 0.0
+            in_range_state = index < len(self.state.ghost_positions)
+            in_range_render = index < len(self._ghost_render_positions)
+            if in_range_state and in_range_render:
+                target_pos = self.state.ghost_positions[index]
+                curr_pos = self._ghost_render_positions[index]
+                dx = target_pos[0] - curr_pos[0]
+                dy = target_pos[1] - curr_pos[1]
+                dist = math.hypot(dx, dy)
+                if dist > 0.05:
+                    look_dx = dx / dist
+                    look_dy = dy / dist
+                else:
+                    # Look towards Pac-Man when static
+                    px, py = self._pacman_render_pos
+                    p_dx = px - curr_pos[0]
+                    p_dy = py - curr_pos[1]
+                    p_dist = math.hypot(p_dx, p_dy)
+                    if p_dist > 0.0:
+                        look_dx = p_dx / p_dist
+                        look_dy = p_dy / p_dist
+
+            if is_edible:
+                # Frightened eyes: small red beads
+                renderer.draw_circle(
+                    left_eye_x, eye_y, pupil_r + 1, (255, 100, 100)
+                )
+                renderer.draw_circle(
+                    right_eye_x, eye_y, pupil_r + 1, (255, 100, 100)
+                )
+
+                # Frightened mouth: red or white zigzag
+                mouth_y = gy + (2 * tile_size) // 3 + 1
+                mouth_x_start = gx + tile_size // 4
+                mouth_x_end = gx + (3 * tile_size) // 4
+                mouth_w = mouth_x_end - mouth_x_start
+                pts = []
+                steps = 4
+                for step in range(steps + 1):
+                    mx_p = mouth_x_start + (step / steps) * mouth_w
+                    my_p = mouth_y + (2 if step % 2 == 0 else -2)
+                    pts.append((int(mx_p), int(my_p)))
+                if color == frightened_white:
+                    zigzag_color = (255, 60, 60)
+                else:
+                    zigzag_color = (255, 255, 255)
+                for p_s, p_e in zip(pts, pts[1:]):
+                    renderer.draw_line(
+                        p_s[0], p_s[1], p_e[0], p_e[1], zigzag_color, 2
+                    )
+            else:
+                # Normal eyes (white eyeball + blue pupil)
+                renderer.draw_circle(
+                    left_eye_x, eye_y, eye_r, (255, 255, 255)
+                )
+                renderer.draw_circle(
+                    right_eye_x, eye_y, eye_r, (255, 255, 255)
+                )
+                pupil_ox = int(look_dx * (eye_r - pupil_r))
+                pupil_oy = int(look_dy * (eye_r - pupil_r))
+                renderer.draw_circle(
+                    left_eye_x + pupil_ox,
+                    eye_y + pupil_oy,
+                    pupil_r,
+                    (20, 40, 180),
+                )
+                renderer.draw_circle(
+                    right_eye_x + pupil_ox,
+                    eye_y + pupil_oy,
+                    pupil_r,
+                    (20, 40, 180),
+                )
+
+        # Dead (eyes only) respawning ghosts
+        respawns = self.state.ghost_respawn_positions
+        for index, (ghost_x, ghost_y) in enumerate(respawns):
             gx = offset_x + ghost_x * tile_size
             gy = offset_y + ghost_y * tile_size
             bob_offset = int(
@@ -452,10 +790,18 @@ class GameScene(Scene):
                 max(2, tile_size // 4),
                 (14, 16, 28),
             )
-            renderer.draw_circle(left_eye_x, eye_y, eye_r, (255, 255, 255))
-            renderer.draw_circle(right_eye_x, eye_y, eye_r, (255, 255, 255))
-            renderer.draw_circle(left_eye_x + 1, eye_y, pupil_r, (80, 150, 255))
-            renderer.draw_circle(right_eye_x + 1, eye_y, pupil_r, (80, 150, 255))
+            renderer.draw_circle(
+                left_eye_x, eye_y, eye_r, (255, 255, 255)
+            )
+            renderer.draw_circle(
+                right_eye_x, eye_y, eye_r, (255, 255, 255)
+            )
+            renderer.draw_circle(
+                left_eye_x + 1, eye_y, pupil_r, (80, 150, 255)
+            )
+            renderer.draw_circle(
+                right_eye_x + 1, eye_y, pupil_r, (80, 150, 255)
+            )
 
     def _draw_path_overlay(
         self,
@@ -483,7 +829,9 @@ class GameScene(Scene):
                 y1 = offset_y + start[1] * tile_size + tile_size // 2
                 x2 = offset_x + end[0] * tile_size + tile_size // 2
                 y2 = offset_y + end[1] * tile_size + tile_size // 2
-                renderer.draw_line(x1, y1, x2, y2, color, max(1, tile_size // 10))
+                renderer.draw_line(
+                    x1, y1, x2, y2, color, max(1, tile_size // 10)
+                )
                 renderer.draw_circle(x2, y2, max(2, tile_size // 9), color)
 
     def _draw_cheat_overlay(self, renderer: Renderer) -> None:
@@ -495,7 +843,9 @@ class GameScene(Scene):
         panel_y = GameScene._HUD_HEIGHT + 10
         panel_width = 296
         panel_height = 144
-        renderer.draw_rect(panel_x, panel_y, panel_width, panel_height, (16, 18, 30))
+        renderer.draw_rect(
+            panel_x, panel_y, panel_width, panel_height, (16, 18, 30)
+        )
         renderer.draw_line(
             panel_x,
             panel_y,
@@ -504,7 +854,9 @@ class GameScene(Scene):
             (110, 170, 255),
             2,
         )
-        renderer.draw_text(panel_x + 10, panel_y + 8, "CHEATS (H hide)", (220, 235, 255))
+        renderer.draw_text(
+            panel_x + 10, panel_y + 8, "CHEATS (H hide)", (220, 235, 255)
+        )
 
         states = [
             f"I Invincible: {'ON' if self.state.is_invincible else 'OFF'}",
@@ -561,8 +913,12 @@ class GameScene(Scene):
             255,
         )
 
-        renderer.draw_rect(meter_x, meter_y, meter_width, meter_height, (22, 28, 44))
-        renderer.draw_rect(meter_x, meter_y, fill_width, meter_height, fill_color)
+        renderer.draw_rect(
+            meter_x, meter_y, meter_width, meter_height, (22, 28, 44)
+        )
+        renderer.draw_rect(
+            meter_x, meter_y, fill_width, meter_height, fill_color
+        )
         renderer.draw_line(
             meter_x,
             meter_y - 1,
@@ -590,7 +946,9 @@ class GameScene(Scene):
 
     def _draw_hud(self, renderer: Renderer) -> None:
         """Draw top HUD with panel background."""
-        renderer.draw_rect(0, 0, renderer.width, self._HUD_HEIGHT, (12, 14, 24))
+        renderer.draw_rect(
+            0, 0, renderer.width, self._HUD_HEIGHT, (12, 14, 24)
+        )
         renderer.draw_line(
             0,
             self._HUD_HEIGHT,
@@ -623,9 +981,37 @@ class GameScene(Scene):
         renderer.draw_text(
             12,
             56,
-            "Move: WASD/Arrows | Pause: P | Cheats: H/I/G/L/K/C/T/V | Quit: Q/ESC",
+            (
+                "Move: WASD/Arrows | Pause: P | "
+                "Cheats: H/I/G/L/K/C/T/V | Quit: Q/ESC"
+            ),
             (170, 178, 205),
         )
+
+    def _draw_particles(
+        self,
+        renderer: Renderer,
+        offset_x: int,
+        offset_y: int,
+        tile_size: int,
+    ) -> None:
+        """Draw active pellet eating particle animations."""
+        for p in self._particles:
+            px_draw = int(offset_x + p.x * tile_size)
+            py_draw = int(offset_y + p.y * tile_size)
+            fade = max(0.0, min(1.0, p.lifetime / p.max_lifetime))
+            color_faded = (
+                int(p.color[0] * fade),
+                int(p.color[1] * fade),
+                int(p.color[2] * fade),
+            )
+            if max(color_faded) > 10:
+                renderer.draw_circle(
+                    px_draw,
+                    py_draw,
+                    max(1, tile_size // 10),
+                    color_faded,
+                )
 
     def render(self, renderer: Renderer) -> None:
         """Render maze, entities and HUD with improved details."""
@@ -642,6 +1028,7 @@ class GameScene(Scene):
             self._draw_maze(renderer, offset_x, offset_y, tile_size)
 
         self._draw_pellets(renderer, offset_x, offset_y, tile_size)
+        self._draw_particles(renderer, offset_x, offset_y, tile_size)
         self._draw_path_overlay(renderer, offset_x, offset_y, tile_size)
         self._draw_pacman(renderer, offset_x, offset_y, tile_size)
         self._draw_ghosts(renderer, offset_x, offset_y, tile_size)
