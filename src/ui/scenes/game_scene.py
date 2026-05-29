@@ -25,6 +25,15 @@ class GameScene(Scene):
     _GHOST_FRIGHTENED_SPEED_RATIO: float = 50.0 / 80.0
     _PELLET_TOUCH_DISTANCE: float = 0.22
     _PELLET_HOLD_MAX_SEC: float = 0.35
+    _WIN_PATTERN: tuple[str, ...] = (
+        "10001 111 10001",
+        "10001 010 11001",
+        "10001 010 10101",
+        "10101 010 10011",
+        "10101 010 10001",
+        "11011 010 10001",
+        "10001 111 10001",
+    )
 
     # Fraction of the tile occupied by each entity (1.0 = full tile).
     _ENTITY_SCALE: float = 0.70
@@ -876,6 +885,139 @@ class GameScene(Scene):
             (165, 185, 225),
         )
 
+    def _draw_win_pellet_stack(
+        self,
+        renderer: Renderer,
+        maze: Maze,
+        offset_x: int,
+        offset_y: int,
+        tile_size: int,
+    ) -> None:
+        """Stack collected pellets on the side to progressively draw WIN."""
+        pattern = self._WIN_PATTERN
+        rows = len(pattern)
+        cols = len(pattern[0]) if rows > 0 else 0
+        if rows == 0 or cols == 0:
+            return
+
+        # Bigger by default, but always fit the viewport.
+        desired_cell = max(8, min(20, tile_size))
+
+        maze_left = offset_x
+        maze_top = offset_y
+        maze_w = maze.width * tile_size
+        maze_h = maze.height * tile_size
+        maze_right = maze_left + maze_w
+        maze_bottom = maze_top + maze_h
+
+        # Compute a visible size first (independent from outside-zone size).
+        fit_cell = min(
+            desired_cell,
+            max(4, (renderer.width - 20) // max(1, cols)),
+            max(4, (renderer.height - self._HUD_HEIGHT - 20) // max(1, rows)),
+        )
+
+        cell = max(4, fit_cell)
+        gap = max(1, cell // 6)
+        pattern_w = cols * cell
+        pattern_h = rows * cell
+
+        # Anchor at midpoint between maze BR corner and screen BR corner.
+        anchor_x = (maze_right + renderer.width) // 2
+        anchor_y = (maze_bottom + renderer.height) // 2
+
+        x = anchor_x - pattern_w // 2
+        y = anchor_y - pattern_h // 2
+
+        # Preferred outside bounds (bottom-right of maze).
+        min_outside_x = maze_right + 10
+        min_outside_y = maze_bottom + 10
+        max_x = renderer.width - pattern_w - 8
+        max_y = renderer.height - pattern_h - 8
+
+        # Try to keep it in the requested outside area first.
+        if min_outside_x <= max_x:
+            x = max(min_outside_x, min(x, max_x))
+        else:
+            x = max(8, min(x, max_x))
+
+        if min_outside_y <= max_y:
+            y = max(min_outside_y, min(y, max_y))
+        else:
+            y = max(self._HUD_HEIGHT + 8, min(y, max_y))
+
+        # Guarantee the pattern is outside maze even when bottom space is tiny:
+        # right of maze OR below maze.
+        if x < min_outside_x and y < min_outside_y:
+            if min_outside_x <= max_x:
+                x = min_outside_x
+            elif min_outside_y <= max_y:
+                y = min_outside_y
+
+        # Detect letter column ranges from the pattern (W, I, N).
+        # Spaces in the pattern separate letters.
+        letter_ranges: list[tuple[int, int]] = []
+        in_segment = False
+        seg_start = 0
+        for col, ch in enumerate(pattern[0]):
+            if ch != " " and not in_segment:
+                in_segment = True
+                seg_start = col
+            elif ch == " " and in_segment:
+                in_segment = False
+                letter_ranges.append((seg_start, col - 1))
+        if in_segment:
+            letter_ranges.append((seg_start, len(pattern[0]) - 1))
+
+        def _letter_index(col: int) -> int:
+            for idx, (start, end) in enumerate(letter_ranges):
+                if start <= col <= end:
+                    return idx
+            return len(letter_ranges)
+
+        # Gather slot coordinates where a pellet can be stacked.
+        # Tuple shape: (letter_index, px, py)
+        slots: list[tuple[int, int, int]] = []
+        for r, line in enumerate(pattern):
+            for c, bit in enumerate(line):
+                if bit != "1":
+                    continue
+                px = x + c * cell
+                py = y + r * cell
+                slots.append((_letter_index(c), px, py))
+
+        if not slots:
+            return
+
+        # Fill order: W first, then I, then N.
+        # Inside each letter: bottom to top, then left to right.
+        fill_order = sorted(slots, key=lambda pos: (pos[0], -pos[2], pos[1]))
+        pellets_total = max(0, int(self.state.pellets_total))
+        pellets_eaten = max(0, int(self.state.pellets_eaten))
+        if pellets_total <= 0:
+            filled = 0
+        else:
+            progress = max(0.0, min(1.0, pellets_eaten / pellets_total))
+            filled = int(round(len(fill_order) * progress))
+
+        # Subtle panel for readability.
+        panel_pad = 6
+        renderer.draw_rect(
+            x - panel_pad,
+            y - panel_pad,
+            pattern_w + panel_pad * 2,
+            pattern_h + panel_pad * 2,
+            (12, 18, 34),
+        )
+
+        pulse = (math.sin(self._anim_time * 10.0) + 1.0) / 2.0
+        lit_color = (255, int(210 + 40 * pulse), 90)
+        dim_color = (26, 42, 76)
+
+        for index, (_, px, py) in enumerate(fill_order):
+            color = lit_color if index < filled else dim_color
+            renderer.draw_rect(px + gap, py + gap, cell - 2 * gap, cell - 2 * gap, color)
+
     def _get_power42_cells(self, maze: Maze) -> list[tuple[int, int]]:
         """Return the WALL cells that form the '42' shape baked into the maze.
 
@@ -1171,6 +1313,7 @@ class GameScene(Scene):
         if maze is not None:
             offset_x, offset_y, tile_size = self._layout(renderer, maze)
             self._draw_maze(renderer, offset_x, offset_y, tile_size)
+            self._draw_win_pellet_stack(renderer, maze, offset_x, offset_y, tile_size)
             self._draw_center_power_42(renderer, offset_x, offset_y, tile_size)
             self._draw_power42_walls(renderer, offset_x, offset_y, tile_size)
 
