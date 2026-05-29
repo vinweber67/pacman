@@ -32,6 +32,7 @@ class GameManager:
     # ghost_interval = pacman_interval / ghost_speed_ratio
     _GHOST_NORMAL_SPEED_RATIO: float = 75.0 / 80.0
     _GHOST_FRIGHTENED_SPEED_RATIO: float = 50.0 / 80.0
+    _POST_HIT_INVULNERABILITY_SEC: float = 1.0
 
     def __init__(self, config: Dict[str, Any]) -> None:
         self.config = config
@@ -45,6 +46,7 @@ class GameManager:
         self.current_level: LevelData | None = None
         self._ghost_move_accumulators: list[float] = []
         self._pacman_move_accumulator = 0.0
+        self._post_hit_invulnerability_remaining = 0.0
 
     def start_game(self) -> None:
         """Start a new run from the first level."""
@@ -52,6 +54,7 @@ class GameManager:
         self.current_level = self.level_manager.load_level(1)
         self._ghost_move_accumulators = []
         self._pacman_move_accumulator = 0.0
+        self._post_hit_invulnerability_remaining = 0.0
         self.ui_manager.switch_scene("game")
         self.loop.running = True
 
@@ -66,6 +69,7 @@ class GameManager:
         )
         self._ghost_move_accumulators = []
         self._pacman_move_accumulator = 0.0
+        self._post_hit_invulnerability_remaining = 0.0
 
     def update(self, delta_time: float) -> None:
         """Update the active scene."""
@@ -77,6 +81,11 @@ class GameManager:
         """Update active gameplay entities and collisions."""
         if self.current_level is None:
             return
+
+        self._post_hit_invulnerability_remaining = max(
+            0.0,
+            self._post_hit_invulnerability_remaining - max(0.0, delta_time),
+        )
 
         self._update_ghost_path_overlay()
 
@@ -220,6 +229,7 @@ class GameManager:
             self.current_level = self.level_manager.advance_level()
             self._ghost_move_accumulators = []
             self._pacman_move_accumulator = 0.0
+            self._post_hit_invulnerability_remaining = 0.0
             return
 
         self._show_end_scene("VICTORY")
@@ -395,6 +405,9 @@ class GameManager:
             if self.state.is_invincible:
                 continue
 
+            if self._post_hit_invulnerability_remaining > 0.0:
+                continue
+
             self.state.lose_life()
             if self.state.is_game_over:
                 self._show_end_scene("GAME OVER")
@@ -405,6 +418,9 @@ class GameManager:
             center_x, center_y = maze.get_center()
             pacman.move_to(center_x, center_y)
             self.state.set_pacman_position(center_x, center_y)
+            self._post_hit_invulnerability_remaining = (
+                self._POST_HIT_INVULNERABILITY_SEC
+            )
             self._sync_ghost_render_state()
             return
 
@@ -624,9 +640,9 @@ class GameManager:
         self.state.is_paused = True
         scene = self.ui_manager.scenes.get("game_over")
         if scene is not None:
-            set_title = getattr(scene, "set_title", None)
-            if callable(set_title):
-                set_title(title)
+            set_message = getattr(scene, "set_message", None)
+            if callable(set_message):
+                set_message(title)
             # Pre-fill the name field with the last player who submitted a score.
             last_name = self.highscore_manager.get_last_player_name()
             if (

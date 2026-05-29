@@ -58,9 +58,23 @@ class GameScene(Scene):
         )
         self._held_eaten_pellets: dict[tuple[int, int], float] = {}
         self._held_eaten_super_pellets: dict[tuple[int, int], float] = {}
+        self._maze_draw_cache_key: tuple[int, int, int, int, int, int] | None = None
+        self._maze_draw_ops: list[tuple[str, tuple]] = []
 
     def on_enter(self) -> None:
         """Prepare gameplay rendering state."""
+        self._anim_time = 0.0
+        self._last_pacman_pos = self.state.pacman_position
+        self._pacman_visual_pos = (
+            float(self.state.pacman_position[0]),
+            float(self.state.pacman_position[1]),
+        )
+        self._prev_pellet_positions = set(self.state.pellet_positions)
+        self._prev_super_pellet_positions = set(self.state.super_pellet_positions)
+        self._held_eaten_pellets.clear()
+        self._held_eaten_super_pellets.clear()
+        self._maze_draw_cache_key = None
+        self._maze_draw_ops = []
         return None
 
     def on_exit(self) -> None:
@@ -343,132 +357,193 @@ class GameScene(Scene):
         thickness = max(2, tile_size // 9)
         highlight = max(1, thickness // 3)
         radius = max(1, thickness // 2)
-
-        def _draw_round_node(cx: int, cy: int) -> None:
-            renderer.draw_circle(cx, cy, radius, wall_color)
-            renderer.draw_circle(cx - 1, cy - 1, max(1, highlight), wall_glow)
-            renderer.draw_circle(cx + 1, cy + 1, max(1, highlight), wall_shadow)
-
-        def _draw_horizontal_wall(px: int, py: int) -> None:
-            cy = py + radius
-            x1 = px
-            x2 = px + tile_size - 1
-            renderer.draw_line(x1, cy, x2, cy, wall_color, thickness)
-            renderer.draw_line(
-                x1,
-                max(py, cy - radius + highlight),
-                x2,
-                max(py, cy - radius + highlight),
-                wall_glow,
-                highlight,
-            )
-            renderer.draw_line(
-                x1,
-                min(py + thickness - 1, cy + radius - highlight),
-                x2,
-                min(py + thickness - 1, cy + radius - highlight),
-                wall_shadow,
-                highlight,
-            )
-            _draw_round_node(x1, cy)
-            _draw_round_node(x2, cy)
-
-        def _draw_vertical_wall(px: int, py: int) -> None:
-            cx = px + radius
-            y1 = py
-            y2 = py + tile_size - 1
-            renderer.draw_line(cx, y1, cx, y2, wall_color, thickness)
-            renderer.draw_line(
-                max(px, cx - radius + highlight),
-                y1,
-                max(px, cx - radius + highlight),
-                y2,
-                wall_glow,
-                highlight,
-            )
-            renderer.draw_line(
-                min(px + thickness - 1, cx + radius - highlight),
-                y1,
-                min(px + thickness - 1, cx + radius - highlight),
-                y2,
-                wall_shadow,
-                highlight,
-            )
-            _draw_round_node(cx, y1)
-            _draw_round_node(cx, y2)
-
-        has_wall_mask = (
-            len(maze.wall_mask) == maze.height
-            and all(len(row) == maze.width for row in maze.wall_mask)
-            and any(mask != 0 for row in maze.wall_mask for mask in row)
+        cache_key = (
+            id(maze),
+            maze.width,
+            maze.height,
+            offset_x,
+            offset_y,
+            tile_size,
         )
 
-        for y in range(maze.height):
-            for x in range(maze.width):
-                px = offset_x + x * tile_size
-                py = offset_y + y * tile_size
+        if self._maze_draw_cache_key != cache_key:
+            draw_ops: list[tuple[str, tuple]] = []
 
-                floor_color = floor_a if (x + y) % 2 == 0 else floor_b
-                renderer.draw_rect(px, py, tile_size, tile_size, floor_color)
+            def _add_rect(
+                x: int,
+                y: int,
+                width: int,
+                height: int,
+                color: tuple[int, int, int],
+            ) -> None:
+                draw_ops.append(("rect", (x, y, width, height, color)))
 
-                if has_wall_mask:
-                    mask = maze.wall_mask[y][x]
-                    # Draw each shared edge once (canonical sides):
-                    # - horizontal walls from top edges
-                    # - vertical walls from left edges
-                    if mask & 1:
-                        _draw_horizontal_wall(px, py)
+            def _add_line(
+                x1: int,
+                y1: int,
+                x2: int,
+                y2: int,
+                color: tuple[int, int, int],
+                width: int,
+            ) -> None:
+                draw_ops.append(("line", (x1, y1, x2, y2, color, width)))
 
-                    if mask & 8:
-                        _draw_vertical_wall(px, py)
+            def _add_circle(
+                x: int,
+                y: int,
+                circle_radius: int,
+                color: tuple[int, int, int],
+            ) -> None:
+                draw_ops.append(("circle", (x, y, circle_radius, color)))
 
-                    # Keep outer frame closed on right/bottom boundaries.
-                    if x == maze.width - 1 and (mask & 2):
-                        _draw_vertical_wall(px + tile_size - thickness, py)
-                    if y == maze.height - 1 and (mask & 4):
-                        _draw_horizontal_wall(px, py + tile_size - thickness)
-                elif maze.tiles[y][x] == TileType.WALL:
-                    renderer.draw_rect(
-                        px,
-                        py,
-                        tile_size,
-                        tile_size,
-                        (10, 35, 160),
-                    )
+            def _draw_round_node(cx: int, cy: int) -> None:
+                _add_circle(cx, cy, radius, wall_color)
+                _add_circle(cx - 1, cy - 1, max(1, highlight), wall_glow)
+                _add_circle(cx + 1, cy + 1, max(1, highlight), wall_shadow)
 
-        # Blend wall junctions so corners / T-junctions look cleaner.
-        if has_wall_mask:
-            for y in range(maze.height + 1):
-                for x in range(maze.width + 1):
-                    has_horizontal = False
-                    has_vertical = False
+            def _draw_horizontal_wall(px: int, py: int) -> None:
+                cy = py + radius
+                x1 = px
+                x2 = px + tile_size - 1
+                _add_line(x1, cy, x2, cy, wall_color, thickness)
+                _add_line(
+                    x1,
+                    max(py, cy - radius + highlight),
+                    x2,
+                    max(py, cy - radius + highlight),
+                    wall_glow,
+                    highlight,
+                )
+                _add_line(
+                    x1,
+                    min(py + thickness - 1, cy + radius - highlight),
+                    x2,
+                    min(py + thickness - 1, cy + radius - highlight),
+                    wall_shadow,
+                    highlight,
+                )
+                _draw_round_node(x1, cy)
+                _draw_round_node(x2, cy)
 
-                    # Horizontal segment touching this vertex.
-                    if y < maze.height:
-                        if x < maze.width and (maze.wall_mask[y][x] & 1):
+            def _draw_vertical_wall(px: int, py: int) -> None:
+                cx = px + radius
+                y1 = py
+                y2 = py + tile_size - 1
+                _add_line(cx, y1, cx, y2, wall_color, thickness)
+                _add_line(
+                    max(px, cx - radius + highlight),
+                    y1,
+                    max(px, cx - radius + highlight),
+                    y2,
+                    wall_glow,
+                    highlight,
+                )
+                _add_line(
+                    min(px + thickness - 1, cx + radius - highlight),
+                    y1,
+                    min(px + thickness - 1, cx + radius - highlight),
+                    y2,
+                    wall_shadow,
+                    highlight,
+                )
+                _draw_round_node(cx, y1)
+                _draw_round_node(cx, y2)
+
+            has_wall_mask = (
+                len(maze.wall_mask) == maze.height
+                and all(len(row) == maze.width for row in maze.wall_mask)
+                and any(mask != 0 for row in maze.wall_mask for mask in row)
+            )
+
+            for y in range(maze.height):
+                for x in range(maze.width):
+                    px = offset_x + x * tile_size
+                    py = offset_y + y * tile_size
+
+                    floor_color = floor_a if (x + y) % 2 == 0 else floor_b
+                    _add_rect(px, py, tile_size, tile_size, floor_color)
+
+                    if has_wall_mask:
+                        mask = maze.wall_mask[y][x]
+                        # Draw each shared edge once (canonical sides):
+                        # - horizontal walls from top edges
+                        # - vertical walls from left edges
+                        if mask & 1:
+                            _draw_horizontal_wall(px, py)
+
+                        if mask & 8:
+                            _draw_vertical_wall(px, py)
+
+                        # Keep outer frame closed on right/bottom boundaries.
+                        if x == maze.width - 1 and (mask & 2):
+                            _draw_vertical_wall(px + tile_size - thickness, py)
+                        if y == maze.height - 1 and (mask & 4):
+                            _draw_horizontal_wall(px, py + tile_size - thickness)
+                    elif maze.tiles[y][x] == TileType.WALL:
+                        _add_rect(
+                            px,
+                            py,
+                            tile_size,
+                            tile_size,
+                            (10, 35, 160),
+                        )
+
+            # Blend wall junctions so corners / T-junctions look cleaner.
+            if has_wall_mask:
+                for y in range(maze.height + 1):
+                    for x in range(maze.width + 1):
+                        has_horizontal = False
+                        has_vertical = False
+
+                        # Horizontal segment touching this vertex.
+                        if y < maze.height:
+                            if x < maze.width and (maze.wall_mask[y][x] & 1):
+                                has_horizontal = True
+                            elif x > 0 and (maze.wall_mask[y][x - 1] & 1):
+                                has_horizontal = True
+                        elif (
+                            y > 0
+                            and x < maze.width
+                            and (maze.wall_mask[y - 1][x] & 4)
+                        ):
                             has_horizontal = True
-                        elif x > 0 and (maze.wall_mask[y][x - 1] & 1):
-                            has_horizontal = True
-                    elif y > 0 and x < maze.width and (maze.wall_mask[y - 1][x] & 4):
-                        has_horizontal = True
 
-                    # Vertical segment touching this vertex.
-                    if x < maze.width:
-                        if y < maze.height and (maze.wall_mask[y][x] & 8):
+                        # Vertical segment touching this vertex.
+                        if x < maze.width:
+                            if y < maze.height and (maze.wall_mask[y][x] & 8):
+                                has_vertical = True
+                            elif y > 0 and (maze.wall_mask[y - 1][x] & 8):
+                                has_vertical = True
+                        elif (
+                            x > 0
+                            and y < maze.height
+                            and (maze.wall_mask[y][x - 1] & 2)
+                        ):
                             has_vertical = True
-                        elif y > 0 and (maze.wall_mask[y - 1][x] & 8):
-                            has_vertical = True
-                    elif x > 0 and y < maze.height and (maze.wall_mask[y][x - 1] & 2):
-                        has_vertical = True
 
-                    if not (has_horizontal and has_vertical):
-                        continue
+                        if not (has_horizontal and has_vertical):
+                            continue
 
-                    vx = offset_x + x * tile_size
-                    vy = offset_y + y * tile_size
-                    join_x = vx + (radius if x < maze.width else -radius)
-                    join_y = vy + (radius if y < maze.height else -radius)
-                    _draw_round_node(join_x, join_y)
+                        vx = offset_x + x * tile_size
+                        vy = offset_y + y * tile_size
+                        join_x = vx + (radius if x < maze.width else -radius)
+                        join_y = vy + (radius if y < maze.height else -radius)
+                        _draw_round_node(join_x, join_y)
+
+            self._maze_draw_cache_key = cache_key
+            self._maze_draw_ops = draw_ops
+
+        for op, params in self._maze_draw_ops:
+            if op == "rect":
+                x, y, width, height, color = params
+                renderer.draw_rect(x, y, width, height, color)
+                continue
+            if op == "line":
+                x1, y1, x2, y2, color, width = params
+                renderer.draw_line(x1, y1, x2, y2, color, width)
+                continue
+            x, y, circle_radius, color = params
+            renderer.draw_circle(x, y, circle_radius, color)
 
     def _draw_pellets(
         self,

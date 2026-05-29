@@ -106,10 +106,12 @@ class HighscoresScene(Scene):
 
                 # Parse the formatted row
                 try:
+                    if not isinstance(row, str):
+                        raise TypeError("Highscore row must be a string")
                     rank_str = row[0:2].strip()
                     name_str = row[4:14].strip()
                     score_str = row[16:].strip()
-                except Exception:
+                except (TypeError, ValueError, AttributeError, IndexError):
                     # Fallback if string structure changes
                     rank_str = f"{index + 1:02d}"
                     name_str = "PLAYER"

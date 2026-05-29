@@ -94,7 +94,7 @@ class GameLoop:
             if remaining_time > 0.001:
                 time.sleep(remaining_time - 0.001)
             while time.perf_counter() - frame_start < FRAME_TIME:
-                pass
+                time.sleep(0)
 
     def stop(self) -> None:
         """Stop the game loop."""

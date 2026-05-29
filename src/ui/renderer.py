@@ -80,12 +80,24 @@ class Renderer:
                 self._fonts[key] = self._pygame.font.SysFont(
                     font_name, size, bold=bold
                 )
-            except Exception:
+            except (
+                AttributeError,
+                OSError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+            ):
                 try:
                     self._fonts[key] = self._pygame.font.SysFont(
                         "Arial", size, bold=bold
                     )
-                except Exception:
+                except (
+                    AttributeError,
+                    OSError,
+                    RuntimeError,
+                    TypeError,
+                    ValueError,
+                ):
                     return self._font
         return self._fonts[key]
 
