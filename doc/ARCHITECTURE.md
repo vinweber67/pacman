@@ -748,7 +748,7 @@ flake8             # Linting (dev)
 | Aspect | Choix |
 |--------|-------|
 | **Langage** | Python 3.10+ |
-| **Graphiques** | MLX42 ou Pygame |
+| **Graphiques** | MLX42 ou Pygame |c
 | **Configuration** | JSON avec parser personnalisé |
 | **Persistence** | JSON (highscores) |
 | **AI/Pathfinding** | BFS + Random walk |
