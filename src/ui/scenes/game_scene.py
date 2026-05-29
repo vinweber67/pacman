@@ -23,6 +23,8 @@ class GameScene(Scene):
     # Visual position advances at exactly these fractions of Pac-Man speed.
     _GHOST_NORMAL_SPEED_RATIO: float = 75.0 / 80.0
     _GHOST_FRIGHTENED_SPEED_RATIO: float = 50.0 / 80.0
+    _PELLET_TOUCH_DISTANCE: float = 0.22
+    _PELLET_HOLD_MAX_SEC: float = 0.35
 
     # Fraction of the tile occupied by each entity (1.0 = full tile).
     _ENTITY_SCALE: float = 0.70
@@ -48,6 +50,14 @@ class GameScene(Scene):
         self._ghost_waypoint_queues: list[list[tuple[int, int]]] = [
             [] for _ in self.state.ghost_positions
         ]
+        self._prev_pellet_positions: set[tuple[int, int]] = set(
+            self.state.pellet_positions
+        )
+        self._prev_super_pellet_positions: set[tuple[int, int]] = set(
+            self.state.super_pellet_positions
+        )
+        self._held_eaten_pellets: dict[tuple[int, int], float] = {}
+        self._held_eaten_super_pellets: dict[tuple[int, int], float] = {}
 
     def on_enter(self) -> None:
         """Prepare gameplay rendering state."""
@@ -62,6 +72,46 @@ class GameScene(Scene):
         safe_delta = max(0.0, delta_time)
         self._anim_time += safe_delta
         self._update_visual_positions(safe_delta)
+        self._update_pellet_visual_hold(safe_delta)
+
+    def _update_pellet_visual_hold(self, delta_time: float) -> None:
+        """Delay pellet disappearance until Pac-Man visually reaches it."""
+        current_pellets = set(self.state.pellet_positions)
+        current_super = set(self.state.super_pellet_positions)
+        pacman_tile = self.state.pacman_position
+
+        for pos in self._prev_pellet_positions - current_pellets:
+            if pos == pacman_tile:
+                self._held_eaten_pellets[pos] = self._PELLET_HOLD_MAX_SEC
+
+        for pos in self._prev_super_pellet_positions - current_super:
+            if pos == pacman_tile:
+                self._held_eaten_super_pellets[pos] = self._PELLET_HOLD_MAX_SEC
+
+        visual_x, visual_y = self._pacman_visual_pos
+
+        def _is_visually_touched(position: tuple[int, int]) -> bool:
+            return (
+                math.hypot(visual_x - position[0], visual_y - position[1])
+                <= self._PELLET_TOUCH_DISTANCE
+            )
+
+        for position in list(self._held_eaten_pellets.keys()):
+            remaining = self._held_eaten_pellets[position] - delta_time
+            if _is_visually_touched(position) or remaining <= 0.0:
+                del self._held_eaten_pellets[position]
+            else:
+                self._held_eaten_pellets[position] = remaining
+
+        for position in list(self._held_eaten_super_pellets.keys()):
+            remaining = self._held_eaten_super_pellets[position] - delta_time
+            if _is_visually_touched(position) or remaining <= 0.0:
+                del self._held_eaten_super_pellets[position]
+            else:
+                self._held_eaten_super_pellets[position] = remaining
+
+        self._prev_pellet_positions = current_pellets
+        self._prev_super_pellet_positions = current_super
 
     @staticmethod
     def _advance_constant_velocity(
@@ -428,7 +478,9 @@ class GameScene(Scene):
         tile_size: int,
     ) -> None:
         """Draw classic pellets and animated super pellets."""
-        for pellet_x, pellet_y in self.state.pellet_positions:
+        visible_pellets = set(self.state.pellet_positions)
+        visible_pellets.update(self._held_eaten_pellets.keys())
+        for pellet_x, pellet_y in visible_pellets:
             cx = offset_x + pellet_x * tile_size + tile_size // 2
             cy = offset_y + pellet_y * tile_size + tile_size // 2
             radius = max(2, tile_size // 8)
@@ -436,7 +488,9 @@ class GameScene(Scene):
             renderer.draw_circle(cx, cy, radius, (255, 230, 130))
 
         pulse = (math.sin(self._anim_time * 6.0) + 1.0) / 2.0
-        for pellet_x, pellet_y in self.state.super_pellet_positions:
+        visible_super = set(self.state.super_pellet_positions)
+        visible_super.update(self._held_eaten_super_pellets.keys())
+        for pellet_x, pellet_y in visible_super:
             cx = offset_x + pellet_x * tile_size + tile_size // 2
             cy = offset_y + pellet_y * tile_size + tile_size // 2
             base = max(4, tile_size // 4)
