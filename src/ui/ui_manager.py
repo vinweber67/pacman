@@ -4,6 +4,18 @@ from __future__ import annotations
 
 from typing import Dict
 
+try:
+    import pygame
+    pygame.init()
+    pygame.display.init()
+    info = pygame.display.Info()
+    screen_width = int(info.current_w * 0.9)
+    screen_height = int(info.current_h * 0.9)
+    pygame.quit()
+except (ImportError, Exception):
+    screen_width = 960
+    screen_height = 960
+
 from src.ui.renderer import Renderer
 from src.ui.scenes.game_scene import GameScene
 from src.ui.scenes.game_over import GameOverScene
@@ -18,7 +30,7 @@ class UIManager:
     """Hold and switch between active scenes."""
 
     def __init__(self) -> None:
-        self.renderer = Renderer(960, 960)
+        self.renderer = Renderer(screen_width, screen_height)
         self.scenes: Dict[str, Scene] = {
             "menu": MainMenuScene(),
             "game": GameScene(),
