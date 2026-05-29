@@ -114,7 +114,7 @@ COMMANDES MAKEFILE TESTÉES:
 ============================
 
 $ make install
-✅ Peut installer les dépendances (sans avoir MLX42)
+✅ Peut installer les dépendances (sans avoir pygame global)
 
 $ make run
 ✅ Lance le jeu correctement

@@ -51,7 +51,7 @@ mkdir -p .data
 #### 0.2 Fichiers de base
 - [ ] `requirements.txt` - Dépendances
   ```
-  mlx42==X.X.X          # Rendu graphique
+    pygame==X.X.X         # Rendu graphique
   A-Maze-ing==X.X.X     # Génération labyrinthe (à obtenir)
   pytest==X.X.X         # Tests
   mypy==X.X.X           # Type checking
@@ -1159,7 +1159,7 @@ make test
 ## 🎨 PHASE 4: UI & Input (Durée: 3-4 jours)
 
 ### Objectifs
-- [ ] Créer Renderer (wrapper MLX)
+- [ ] Créer Renderer (wrapper pygame)
 - [ ] Système de scènes
 - [ ] Gestion des entrées
 - [ ] Menus basiques
@@ -1186,42 +1186,36 @@ COLORS = {
 
 **`src/ui/renderer.py`**
 ```python
-"""Renderer wrapper for MLX."""
+"""Renderer wrapper for pygame."""
 
 from typing import Tuple, Optional
+import pygame
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
 class Renderer:
-    """Renderer using MLX42."""
+    """Renderer using pygame."""
     
     def __init__(self, width: int, height: int, title: str = "Pac-Man"):
         """Initialize renderer."""
-        try:
-            from MLX42 import MLX42
-            self.mlx = MLX42(width, height, "Pac-Man")
-        except ImportError:
-            logger.error("MLX42 not available")
-            self.mlx = None
-        
+        pygame.init()
+        self.screen = pygame.display.set_mode((width, height))
+        pygame.display.set_caption(title)
         self.width = width
         self.height = height
     
     def clear(self, color: Tuple[int, int, int]) -> None:
         """Clear screen."""
-        if self.mlx:
-            self.mlx.clear_background(color)
+        self.screen.fill(color)
     
     def present(self) -> None:
         """Present frame."""
-        if self.mlx:
-            self.mlx.do_loop()
+        pygame.display.update()
     
     def close(self) -> None:
         """Close renderer."""
-        if self.mlx:
-            self.mlx.terminate()
+        pygame.quit()
 ```
 
 #### 4.2 Scene System

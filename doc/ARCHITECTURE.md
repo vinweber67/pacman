@@ -33,7 +33,7 @@ Le projet Pac-Man est structuré selon une architecture modulaire basée sur la 
         │                  │         │
    ┌────▼──────┐     ┌────▼─────┐  │
    │ Game Loop │     │ Renderer  │  │
-   │ (Events)  │     │ (MLX)     │  │
+    │ (Events)  │     │ (Pygame)  │  │
    └───────────┘     └───────────┘  │
                                     │
                     ┌───────────────┘
@@ -101,7 +101,7 @@ Pacman/
 │   │   │   ├── game_over.py   # Écran de fin
 │   │   │   ├── highscores.py  # Affichage des highscores
 │   │   │   └── instructions.py # Instructions
-│   │   ├── renderer.py        # Rendu graphique (MLX wrapper)
+│   │   ├── renderer.py        # Rendu graphique (pygame wrapper)
 │   │   ├── assets.py          # Gestion des ressources graphiques
 │   │   └── colors.py          # Palette de couleurs
 │   │
@@ -488,7 +488,7 @@ class UIManager:
 # renderer.py
 class Renderer:
     """
-    Wrapper pour MLX (ou autre librairie graphique).
+    Wrapper pour pygame (ou autre librairie graphique).
     Responsable du rendu bas niveau.
     """
     def draw_rectangle(x, y, w, h, color): void
@@ -733,7 +733,7 @@ except Exception as e:
 ## 6. Dépendances externes
 
 ```
-mlx42              # Rendu graphique (ou pygame/pyglet)
+pygame             # Rendu graphique
 numpy              # Calculs matriciels
 A-Maze-ing        # Génération de labyrinthe (attribué)
 pytest             # Tests (dev)
@@ -748,7 +748,7 @@ flake8             # Linting (dev)
 | Aspect | Choix |
 |--------|-------|
 | **Langage** | Python 3.10+ |
-| **Graphiques** | MLX42 ou Pygame |c
+| **Graphiques** | Pygame |
 | **Configuration** | JSON avec parser personnalisé |
 | **Persistence** | JSON (highscores) |
 | **AI/Pathfinding** | BFS + Random walk |
@@ -772,7 +772,7 @@ flake8             # Linting (dev)
   - [ ] Ghost AI (basic chase)
 
 - [ ] **Phase 3: UI + Input**
-  - [ ] Renderer (MLX wrapper)
+    - [ ] Renderer (pygame wrapper)
   - [ ] Scene system
   - [ ] Main menu + game view
   - [ ] Input handler

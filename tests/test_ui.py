@@ -14,11 +14,11 @@ class TestRenderer:
     """Renderer tests."""
 
     def test_headless_renderer(self) -> None:
-        """Renderer falls back to headless mode when MLX42 is unavailable."""
+        """Renderer initializes with pygame or headless backend."""
         renderer = Renderer(320, 240)
         assert renderer.width == 320
         assert renderer.height == 240
-        assert renderer.mlx is None or renderer.mlx is not None
+        assert renderer._backend in {"pygame", "headless"}
 
 
 class TestColors:

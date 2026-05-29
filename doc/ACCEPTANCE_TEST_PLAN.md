@@ -595,7 +595,7 @@ Dossier [doc/PROJECT_MANAGEMENT/](../doc/PROJECT_MANAGEMENT/):
 ### Mandatory Part
 
 - [x] Jeu complet et jouable ✓
-- [x] Utilise MLX ou librairie similaire ✓
+- [x] Utilise pygame ✓
 - [x] OOP et architecture modulaire ✓
 - [x] Configuration via fichier JSON ✓
 - [x] Gestion robuste d'erreurs ✓

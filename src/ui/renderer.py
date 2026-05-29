@@ -23,7 +23,6 @@ class Renderer:
         self.width = width
         self.height = height
         self.title = title
-        self.mlx: Optional[Any] = None
         self._pygame: Optional[Any] = None
         self.screen: Optional[Any] = None
         self._font: Optional[Any] = None

@@ -154,7 +154,7 @@ this section.
 Chapter IV
 Mandatory part
 In this project, you will create a complete and playable Pac-Man game like in Python,
-using object-oriented programming, a simple graphical library (MLX or similar), and a
+using object-oriented programming, a simple graphical library (pygame or similar), and a
 modular, reusable architecture.
 
 The game must support:
