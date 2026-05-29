@@ -21,7 +21,7 @@ class ConfigValidator:
         "ghost_respawn_time": 10,
         "super_pacgum_duration": 10,
         "levels": [
-            {"width": 21, "height": 21, "seed": 42, "max_time": 90}
+            {"width": 15, "height": 15, "seed": 42, "max_time": 90}
         ]
     }
     SUPPORTED_KEYS: set[str] = set(DEFAULT_CONFIG.keys())

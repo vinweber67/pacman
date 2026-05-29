@@ -18,7 +18,7 @@ class UIManager:
     """Hold and switch between active scenes."""
 
     def __init__(self) -> None:
-        self.renderer = Renderer(840, 840)
+        self.renderer = Renderer(960, 960)
         self.scenes: Dict[str, Scene] = {
             "menu": MainMenuScene(),
             "game": GameScene(),

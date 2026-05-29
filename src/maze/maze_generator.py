@@ -151,8 +151,58 @@ class MazeGenerator:
                     TileType.WALL if cell == 15 else TileType.CORRIDOR
                 )
 
+        MazeGenerator._simplify_external_maze_layout(maze)
         MazeGenerator._open_spawn_points(maze)
         return maze
+
+    @staticmethod
+    def _simplify_external_maze_layout(maze: Maze) -> None:
+        """Open extra corridors to keep mazes easier and visually cleaner."""
+        if maze.width < 5 or maze.height < 5:
+            return
+
+        # Create sparse extra openings so navigation is simpler without
+        # transforming every corridor into long straight tunnels.
+        for y in range(1, maze.height - 1):
+            for x in range(1, maze.width - 1):
+                if maze.tiles[y][x] == TileType.WALL:
+                    continue
+                if (x + y) % 3 == 0:
+                    MazeGenerator._open_wall_between(maze, x, y, x + 1, y)
+
+    @staticmethod
+    def _open_wall_between(
+        maze: Maze,
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int,
+    ) -> None:
+        """Open a passage between two adjacent walkable cells."""
+        if not (0 <= x1 < maze.width and 0 <= y1 < maze.height):
+            return
+        if not (0 <= x2 < maze.width and 0 <= y2 < maze.height):
+            return
+        if maze.tiles[y1][x1] == TileType.WALL or maze.tiles[y2][x2] == TileType.WALL:
+            return
+
+        dx = x2 - x1
+        dy = y2 - y1
+        if abs(dx) + abs(dy) != 1:
+            return
+
+        if dx == 1 and dy == 0:
+            maze.wall_mask[y1][x1] &= ~2
+            maze.wall_mask[y2][x2] &= ~8
+        elif dx == -1 and dy == 0:
+            maze.wall_mask[y1][x1] &= ~8
+            maze.wall_mask[y2][x2] &= ~2
+        elif dx == 0 and dy == 1:
+            maze.wall_mask[y1][x1] &= ~4
+            maze.wall_mask[y2][x2] &= ~1
+        elif dx == 0 and dy == -1:
+            maze.wall_mask[y1][x1] &= ~1
+            maze.wall_mask[y2][x2] &= ~4
 
     @staticmethod
     def _generate_fallback_maze(width: int, height: int) -> Maze:

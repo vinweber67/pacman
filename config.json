@@ -32,62 +32,62 @@
   // ===========================================================================
   "levels": [
     {
-      "width": 21,
-      "height": 21,
+      "width": 15,
+      "height": 15,
       "seed": 42,
       "max_time": 90
     },
     {
-      "width": 21,
-      "height": 21,
+      "width": 15,
+      "height": 15,
       "seed": 1337,
       "max_time": 90
     },
     {
-      "width": 21,
-      "height": 21,
+      "width": 15,
+      "height": 15,
       "seed": 9999,
       "max_time": 90
     },
     {
-      "width": 21,
-      "height": 21,
+      "width": 15,
+      "height": 15,
       "seed": 4242,
       "max_time": 90
     },
     {
-      "width": 21,
-      "height": 21,
+      "width": 15,
+      "height": 15,
       "seed": 5555,
       "max_time": 90
     },
     {
-      "width": 21,
-      "height": 21,
+      "width": 15,
+      "height": 15,
       "seed": 7777,
       "max_time": 90
     },
     {
-      "width": 21,
-      "height": 21,
+      "width": 15,
+      "height": 15,
       "seed": 8888,
       "max_time": 90
     },
     {
-      "width": 21,
-      "height": 21,
+      "width": 15,
+      "height": 15,
       "seed": 1111,
       "max_time": 90
     },
     {
-      "width": 21,
-      "height": 21,
+      "width": 15,
+      "height": 15,
       "seed": 2222,
       "max_time": 90
     },
     {
-      "width": 21,
-      "height": 21,
+      "width": 15,
+      "height": 15,
       "seed": 3333,
       "max_time": 90
     }
