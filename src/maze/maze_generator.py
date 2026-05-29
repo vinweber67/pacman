@@ -16,7 +16,26 @@ from src.utils.exceptions import MazeGenerationError
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
-WHEEL_PATH = Path(__file__).resolve().parents[2] / "mazegenerator-00001-py3-none-any.whl"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_WHEEL_NAME = "mazegenerator-00001-py3-none-any.whl"
+
+
+def _resolve_wheel_path() -> Path:
+    """Resolve the external maze wheel path from known or discovered files."""
+    default_path = PROJECT_ROOT / DEFAULT_WHEEL_NAME
+    if default_path.exists():
+        return default_path
+
+    whl_candidates = sorted(PROJECT_ROOT.glob("*.whl"))
+    if len(whl_candidates) == 1:
+        return whl_candidates[0]
+
+    for candidate in whl_candidates:
+        name = candidate.name.lower()
+        if "maze" in name or "pacman" in name:
+            return candidate
+
+    return default_path
 
 
 class MazeGenerator:
@@ -48,15 +67,16 @@ class MazeGenerator:
         seed: int,
     ) -> list[list[int]]:
         """Load the wheel package dynamically and return its maze grid."""
-        if not WHEEL_PATH.exists():
+        wheel_path = _resolve_wheel_path()
+        if not wheel_path.exists():
             raise MazeGenerationError(
-                f"Required wheel not found: {WHEEL_PATH}"
+                f"Required wheel not found: {wheel_path}"
             )
 
         try:
-            wheel_path = str(WHEEL_PATH)
-            if wheel_path not in sys.path:
-                sys.path.insert(0, wheel_path)
+            wheel_path_str = str(wheel_path)
+            if wheel_path_str not in sys.path:
+                sys.path.insert(0, wheel_path_str)
 
             if MazeGenerator._external_class is None:
                 external_module = import_module("mazegenerator.mazegenerator")

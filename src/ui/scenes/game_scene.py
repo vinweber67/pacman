@@ -225,6 +225,7 @@ class GameScene(Scene):
         has_wall_mask = (
             len(maze.wall_mask) == maze.height
             and all(len(row) == maze.width for row in maze.wall_mask)
+            and any(mask != 0 for row in maze.wall_mask for mask in row)
         )
 
         for y in range(maze.height):
