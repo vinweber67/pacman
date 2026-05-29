@@ -528,6 +528,11 @@ class GameManager:
             CheatMode.toggle_overlay(self.state)
             return
 
+        if key == ord("z") or key == ord("Z"):
+            if scene_name == "game":
+                self.state.current_theme = (self.state.current_theme + 1) % 4
+            return
+
         self.ui_manager.handle_input(key)
 
     def _handle_select(self, scene_name: str) -> None:

@@ -54,6 +54,9 @@ class GameState:
     pellets_eaten: int = 0
     pellets_total: int = 0
 
+    # Theme system (0=default, 1=cyberpunk, 2=ancient, 3=biological)
+    current_theme: int = 0
+
     # Singleton instance
     _instance: Optional['GameState'] = None
     _initialized: bool = False
@@ -96,6 +99,7 @@ class GameState:
         self.super_pellet_positions = []
         self.pellets_eaten = 0
         self.pellets_total = 0
+        self.current_theme = 0
         self._initialized = True
 
     def reset(self) -> None:
@@ -128,6 +132,7 @@ class GameState:
         self.super_pellet_positions = []
         self.pellets_eaten = 0
         self.pellets_total = 0
+        self.current_theme = 0
 
     def add_score(self, points: int) -> None:
         """Add points to score."""

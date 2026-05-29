@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from typing import cast
 
 from src.game.game_state import GameState
 from src.maze.maze import Maze
@@ -18,6 +19,53 @@ class GameScene(Scene):
     _HUD_HEIGHT = 84
     _DEFAULT_MOVE_INTERVAL = 0.28
     _TELEPORT_SNAP_DISTANCE = 2.5
+
+    # Themes
+    THEME_DEFAULT = 0
+    THEME_CYBERPUNK = 1
+    THEME_ANCIENT = 2
+    THEME_BIOLOGICAL = 3
+    THEME_NAMES = ["Default", "Cyberpunk", "Ancient", "Biological"]
+
+    # Theme-specific color palettes
+    THEME_COLORS = {
+        THEME_DEFAULT: {
+            "wall": (20, 92, 255),
+            "wall_glow": (90, 160, 255),
+            "background_main": (8, 10, 20),
+            "background_light": (13, 18, 34),
+            "pacman": (255, 220, 20),
+            "ghost_normal": [(255, 60, 60), (255, 170, 235), (120, 240, 255), (255, 205, 120)],
+            "text": (240, 240, 255),
+        },
+        THEME_CYBERPUNK: {
+            "wall": (0, 255, 200),
+            "wall_glow": (100, 255, 220),
+            "background_main": (5, 5, 15),
+            "background_light": (10, 10, 25),
+            "pacman": (255, 0, 255),
+            "ghost_normal": [(255, 0, 255), (0, 255, 255), (255, 255, 0), (255, 100, 0)],
+            "text": (0, 255, 200),
+        },
+        THEME_ANCIENT: {
+            "wall": (180, 140, 80),
+            "wall_glow": (220, 180, 120),
+            "background_main": (20, 15, 10),
+            "background_light": (30, 22, 15),
+            "pacman": (255, 215, 0),
+            "ghost_normal": [(150, 80, 40), (120, 100, 80), (140, 140, 100), (100, 80, 60)],
+            "text": (220, 200, 150),
+        },
+        THEME_BIOLOGICAL: {
+            "wall": (100, 200, 100),
+            "wall_glow": (150, 255, 150),
+            "background_main": (10, 20, 10),
+            "background_light": (15, 30, 15),
+            "pacman": (255, 255, 255),
+            "ghost_normal": [(200, 50, 50), (100, 150, 100), (150, 100, 200), (200, 100, 50)],
+            "text": (100, 255, 100),
+        },
+    }
 
     # Speed ratios mirroring the arcade originals (same as GameManager).
     # Visual position advances at exactly these fractions of Pac-Man speed.
@@ -37,6 +85,20 @@ class GameScene(Scene):
 
     # Fraction of the tile occupied by each entity (1.0 = full tile).
     _ENTITY_SCALE: float = 0.70
+
+    def _get_theme_color(self, color_key: str) -> tuple[int, int, int]:
+        """Get color for current theme."""
+        theme_id = min(self.state.current_theme, self.THEME_BIOLOGICAL)
+        colors = self.THEME_COLORS.get(theme_id, self.THEME_COLORS[self.THEME_DEFAULT])
+        result = colors.get(color_key, (255, 255, 255))
+        return tuple(result) if isinstance(result, (tuple, list)) else result  # type: ignore
+
+    def _get_theme_ghost_colors(self) -> list[tuple[int, int, int]]:
+        """Get ghost colors for current theme."""
+        theme_id = min(self.state.current_theme, self.THEME_BIOLOGICAL)
+        colors = self.THEME_COLORS.get(theme_id, self.THEME_COLORS[self.THEME_DEFAULT])
+        result = colors.get("ghost_normal", self.THEME_COLORS[self.THEME_DEFAULT]["ghost_normal"])
+        return list(result) if isinstance(result, (tuple, list)) else result  # type: ignore
 
     def __init__(self) -> None:
         self.state = GameState()
@@ -67,7 +129,7 @@ class GameScene(Scene):
         )
         self._held_eaten_pellets: dict[tuple[int, int], float] = {}
         self._held_eaten_super_pellets: dict[tuple[int, int], float] = {}
-        self._maze_draw_cache_key: tuple[int, int, int, int, int, int] | None = None
+        self._maze_draw_cache_key: tuple[int, int, int, int, int, int, int] | None = None
         self._maze_draw_ops: list[tuple[str, tuple]] = []
         self._power_prev_remaining = 0.0
         self._power_cycle_max = 0.0
@@ -373,11 +435,11 @@ class GameScene(Scene):
         if maze is None:
             return
 
-        wall_color = (20, 92, 255)
-        wall_glow = (90, 160, 255)
-        wall_shadow = (8, 38, 120)
-        floor_a = (11, 15, 30)
-        floor_b = (13, 18, 34)
+        wall_color = self._get_theme_color("wall")
+        wall_glow = self._get_theme_color("wall_glow")
+        wall_shadow_tuple = tuple(max(0, c // 3) for c in wall_color)
+        wall_shadow: tuple[int, int, int] = (wall_shadow_tuple[0], wall_shadow_tuple[1], wall_shadow_tuple[2])  # type: ignore
+        floor_a = self._get_theme_color("background_main")
         thickness = max(2, tile_size // 9)
         highlight = max(1, thickness // 3)
         radius = max(1, thickness // 2)
@@ -388,6 +450,7 @@ class GameScene(Scene):
             offset_x,
             offset_y,
             tile_size,
+            self.state.current_theme,
         )
 
         if self._maze_draw_cache_key != cache_key:
@@ -484,8 +547,7 @@ class GameScene(Scene):
                     px = offset_x + x * tile_size
                     py = offset_y + y * tile_size
 
-                    floor_color = floor_a if (x + y) % 2 == 0 else floor_b
-                    _add_rect(px, py, tile_size, tile_size, floor_color)
+                    _add_rect(px, py, tile_size, tile_size, floor_a)
 
                     if has_wall_mask:
                         mask = maze.wall_mask[y][x]
@@ -633,7 +695,8 @@ class GameScene(Scene):
             renderer.draw_circle(cx, cy, glow_radius + 3, (55, 95, 180))
             renderer.draw_circle(cx, cy, glow_radius, (95, 150, 255))
 
-        renderer.draw_circle(cx, cy, radius, (255, 220, 20))
+        pacman_color = self._get_theme_color("pacman")
+        renderer.draw_circle(cx, cy, radius, pacman_color)
         renderer.draw_circle(
             cx - radius // 4,
             cy - radius // 4,
@@ -668,12 +731,9 @@ class GameScene(Scene):
         tile_size: int,
     ) -> None:
         """Draw ghosts with body, eyes and pupils."""
-        ghost_colors = [
-            (255, 60, 60),
-            (255, 170, 235),
-            (120, 240, 255),
-            (255, 185, 70),
-        ]
+        theme_id = self.state.current_theme
+        colors = self.THEME_COLORS.get(theme_id, self.THEME_COLORS[self.THEME_DEFAULT])
+        ghost_colors = list(colors.get("ghost_normal", self.THEME_COLORS[self.THEME_DEFAULT]["ghost_normal"]))
         frightened_blue = (40, 90, 255)
         frightened_white = (240, 240, 255)
         ghost_positions = self._ghost_visual_positions
@@ -689,7 +749,7 @@ class GameScene(Scene):
                 * max(1, tile_size // 14)
             )
             gy = int(offset_y + ghost_y * tile_size) + bob_offset
-            color = ghost_colors[index % len(ghost_colors)]
+            color: tuple[int, int, int] = cast(tuple[int, int, int], ghost_colors[index % len(ghost_colors)])
             is_edible = (
                 index < len(self.state.ghost_edible_states)
                 and self.state.ghost_edible_states[index]
@@ -1299,6 +1359,16 @@ class GameScene(Scene):
             "Move: WASD/Arrows | Pause: P | Cheats: H/I/G/L/K/C/T/V | Quit: Q/ESC",
             (170, 178, 205),
         )
+        
+        # Display current theme
+        theme_text = f"Theme: {self.THEME_NAMES[min(self.state.current_theme, 3)]} (Z to change)"
+        theme_color = self._get_theme_color("text")
+        renderer.draw_text(
+            renderer.width - 350,
+            56,
+            theme_text,
+            theme_color,
+        )
 
     def render(self, renderer: Renderer) -> None:
         """Render maze, entities and HUD with improved details."""
@@ -1325,5 +1395,6 @@ class GameScene(Scene):
         self._draw_cheat_overlay(renderer)
 
     def handle_input(self, key: int) -> None:
-        """Gameplay input placeholder."""
-        del key
+        """Handle gameplay input including theme toggle (Z key)."""
+        if key == ord("z") or key == ord("Z"):
+            self.state.current_theme = (self.state.current_theme + 1) % 4
