@@ -632,7 +632,7 @@ class GameScene(Scene):
             (140, 90, 10),
         )
 
-        openness = 0.16 + 0.24 * abs(math.sin(self._anim_time * 10.0))
+        openness = 0.16 + 0.24 * abs(math.sin(self._anim_time * 18.0))
         mx, my = self._pacman_dir
         tip = (cx + int(mx * (radius + 2)), cy + int(my * (radius + 2)))
         side_x = -my
