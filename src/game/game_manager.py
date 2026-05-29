@@ -23,6 +23,9 @@ logger = setup_logger(__name__)
 class GameManager:
     """Coordinate level loading, UI and the main loop."""
 
+    _PACMAN_BASE_MOVE_INTERVAL = 0.12
+    _PACMAN_MIN_MOVE_INTERVAL = 0.03
+
     def __init__(self, config: Dict[str, Any]) -> None:
         self.config = config
         self.state = GameState()
@@ -34,11 +37,14 @@ class GameManager:
         self.loop = GameLoop(self)
         self.current_level: LevelData | None = None
         self._ghost_move_accumulator = 0.0
+        self._pacman_move_accumulator = 0.0
 
     def start_game(self) -> None:
         """Start a new run from the first level."""
         self.state.reset()
         self.current_level = self.level_manager.load_level(1)
+        self._ghost_move_accumulator = 0.0
+        self._pacman_move_accumulator = 0.0
         self.ui_manager.switch_scene("game")
         self.loop.running = True
 
@@ -51,6 +57,8 @@ class GameManager:
         self.current_level = self.level_manager.load_level(
             self.state.current_level,
         )
+        self._ghost_move_accumulator = 0.0
+        self._pacman_move_accumulator = 0.0
 
     def update(self, delta_time: float) -> None:
         """Update the active scene."""
@@ -64,6 +72,8 @@ class GameManager:
             return
 
         self._update_ghost_path_overlay()
+
+        self._update_pacman_movement(delta_time)
 
         for ghost in self.current_level.ghosts:
             ghost.update(delta_time)
@@ -85,6 +95,142 @@ class GameManager:
                 default=0.0,
             )
         )
+
+    def _pacman_move_interval(self) -> float:
+        """Return current interval between two Pac-Man tile moves."""
+        speed_multiplier = max(
+            0.1,
+            float(getattr(self.state, "player_speed_multiplier", 1.0)),
+        )
+        base_interval = float(
+            self.config.get(
+                "pacman_move_interval",
+                self._PACMAN_BASE_MOVE_INTERVAL,
+            )
+        )
+        interval = base_interval / speed_multiplier
+        return max(self._PACMAN_MIN_MOVE_INTERVAL, interval)
+
+    def _update_pacman_movement(self, delta_time: float) -> None:
+        """Move Pac-Man continuously using current/queued direction."""
+        if self.current_level is None or delta_time <= 0.0:
+            return
+
+        self._pacman_move_accumulator += delta_time
+        move_interval = self._pacman_move_interval()
+
+        while self._pacman_move_accumulator >= move_interval:
+            self._pacman_move_accumulator -= move_interval
+            moved = self._advance_pacman_step()
+            if not moved:
+                break
+            if self.current_level is None:
+                break
+            if self.ui_manager.current_scene_name != "game":
+                break
+
+    def _advance_pacman_step(self) -> bool:
+        """Try to move Pac-Man by one tile according to classic rules."""
+        if self.current_level is None:
+            return False
+
+        maze = self.current_level.maze
+        pacman = self.current_level.pacman
+
+        if pacman.next_direction != Direction.NONE:
+            next_dir = pacman.next_direction
+            turn_x = pacman.x + next_dir.dx
+            turn_y = pacman.y + next_dir.dy
+            if maze.can_move(pacman.x, pacman.y, turn_x, turn_y):
+                pacman.direction = next_dir
+                pacman.next_direction = Direction.NONE
+
+        if pacman.direction == Direction.NONE:
+            return False
+
+        next_x = pacman.x + pacman.direction.dx
+        next_y = pacman.y + pacman.direction.dy
+        if not maze.can_move(pacman.x, pacman.y, next_x, next_y):
+            return False
+
+        self._apply_pacman_move(next_x, next_y)
+        return True
+
+    def _apply_pacman_move(self, next_x: int, next_y: int) -> None:
+        """Apply a validated Pac-Man tile move and resolve side effects."""
+        if self.current_level is None:
+            return
+
+        pacman = self.current_level.pacman
+        pacman.move_to(next_x, next_y)
+        self.state.set_pacman_position(next_x, next_y)
+
+        for pellet in self.current_level.pellets:
+            if pellet.is_eaten:
+                continue
+            if pellet.position != pacman.position:
+                continue
+
+            pellet.eat()
+            if pellet.is_super:
+                self.state.add_score(
+                    int(self.config.get("points_per_super_pacgum", 50))
+                )
+                self._enable_super_mode()
+            else:
+                self.state.add_score(
+                    int(self.config.get("points_per_pacgum", 10))
+                )
+            break
+
+        self.state.set_pellet_positions(
+            [
+                pellet.position
+                for pellet in self.current_level.pellets
+                if not pellet.is_eaten and not pellet.is_super
+            ]
+        )
+        self.state.set_super_pellet_positions(
+            [
+                pellet.position
+                for pellet in self.current_level.pellets
+                if not pellet.is_eaten and pellet.is_super
+            ]
+        )
+        self.state.update_pellets(
+            len(self.current_level.pellets)
+            - (
+                len(self.state.pellet_positions)
+                + len(self.state.super_pellet_positions)
+            ),
+            len(self.current_level.pellets),
+        )
+
+        if self.state.pellet_positions or self.state.super_pellet_positions:
+            return
+
+        if self.level_manager.has_more_levels():
+            self.current_level = self.level_manager.advance_level()
+            self._ghost_move_accumulator = 0.0
+            self._pacman_move_accumulator = 0.0
+            return
+
+        self._show_end_scene("VICTORY")
+
+    def _queue_pacman_direction(self, action: Action) -> None:
+        """Queue direction changes; movement itself is handled by update."""
+        if self.current_level is None:
+            return
+
+        direction = self._action_to_direction(action)
+        if direction == Direction.NONE:
+            return
+
+        pacman = self.current_level.pacman
+        pacman.set_direction(direction)
+
+        if pacman.direction == Direction.NONE:
+            pacman.direction = direction
 
     def _sync_ghost_render_state(self) -> None:
         """Synchronize ghost render data stored in the shared game state."""
@@ -230,7 +376,7 @@ class GameManager:
             Action.MOVE_RIGHT,
         }:
             if scene_name == "game":
-                self._move_pacman(action)
+                self._queue_pacman_direction(action)
             else:
                 self.ui_manager.handle_input(key)
             return
@@ -333,7 +479,10 @@ class GameManager:
         self.ui_manager.switch_scene("highscores")
 
     def _move_pacman(self, action: Action) -> None:
-        """Move Pac-Man one tile when movement is valid."""
+        """Move Pac-Man one tile when movement is valid.
+
+        Kept for deterministic tests and scripted scenarios.
+        """
         if self.current_level is None:
             return
 
@@ -355,59 +504,9 @@ class GameManager:
         if not maze.can_move(pacman.x, pacman.y, next_x, next_y):
             return
 
-        pacman.move_to(next_x, next_y)
+        pacman.next_direction = Direction.NONE
         pacman.direction = self._action_to_direction(action)
-        self.state.set_pacman_position(next_x, next_y)
-
-        for pellet in self.current_level.pellets:
-            if pellet.is_eaten:
-                continue
-            if pellet.position != pacman.position:
-                continue
-
-            pellet.eat()
-            if pellet.is_super:
-                self.state.add_score(
-                    int(self.config.get("points_per_super_pacgum", 50))
-                )
-                self._enable_super_mode()
-            else:
-                self.state.add_score(
-                    int(self.config.get("points_per_pacgum", 10))
-                )
-            break
-
-        self.state.set_pellet_positions(
-            [
-                pellet.position
-                for pellet in self.current_level.pellets
-                if not pellet.is_eaten and not pellet.is_super
-            ]
-        )
-        self.state.set_super_pellet_positions(
-            [
-                pellet.position
-                for pellet in self.current_level.pellets
-                if not pellet.is_eaten and pellet.is_super
-            ]
-        )
-        self.state.update_pellets(
-            len(self.current_level.pellets)
-            - (
-                len(self.state.pellet_positions)
-                + len(self.state.super_pellet_positions)
-            ),
-            len(self.current_level.pellets),
-        )
-
-        if self.state.pellet_positions or self.state.super_pellet_positions:
-            return
-
-        if self.level_manager.has_more_levels():
-            self.current_level = self.level_manager.advance_level()
-            return
-
-        self._show_end_scene("VICTORY")
+        self._apply_pacman_move(next_x, next_y)
 
     @staticmethod
     def _action_to_direction(action: Action) -> Direction:

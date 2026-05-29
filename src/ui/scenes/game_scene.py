@@ -68,6 +68,47 @@ class GameScene(Scene):
             ny = target[1]
         return nx, ny
 
+    @staticmethod
+    def _lerp_towards_grid_aligned(
+        current: tuple[float, float],
+        target: tuple[float, float],
+        delta_time: float,
+        blend_time: float,
+    ) -> tuple[float, float]:
+        """Smooth toward target without diagonal corner cutting.
+
+        If both axes differ, only one axis is advanced for this frame.
+        This keeps entities visually centered in maze corridors while turning.
+        """
+        if blend_time <= 0.0 or delta_time <= 0.0:
+            return current
+
+        dx = target[0] - current[0]
+        dy = target[1] - current[1]
+        if abs(dx) < 1e-6 and abs(dy) < 1e-6:
+            return target
+
+        current_x, current_y = current
+
+        # Never blend both axes at once when turning: preserve corridor alignment.
+        if abs(dx) > 1e-6 and abs(dy) > 1e-6:
+            if abs(dx) >= abs(dy):
+                current_y = target[1]
+                dy = 0.0
+            else:
+                current_x = target[0]
+                dx = 0.0
+
+        alpha = min(1.0, delta_time / blend_time)
+        nx = current_x + dx * alpha
+        ny = current_y + dy * alpha
+
+        if abs(nx - target[0]) < 1e-3:
+            nx = target[0]
+        if abs(ny - target[1]) < 1e-3:
+            ny = target[1]
+        return nx, ny
+
     def _update_visual_positions(self, delta_time: float) -> None:
         """Smooth visual positions while keeping gameplay tile-based."""
         target_pacman = (
@@ -82,7 +123,7 @@ class GameScene(Scene):
         ):
             self._pacman_visual_pos = target_pacman
         else:
-            self._pacman_visual_pos = self._lerp_towards(
+            self._pacman_visual_pos = self._lerp_towards_grid_aligned(
                 self._pacman_visual_pos,
                 target_pacman,
                 delta_time,
@@ -105,7 +146,7 @@ class GameScene(Scene):
                 updated.append(target)
                 continue
             updated.append(
-                self._lerp_towards(
+                self._lerp_towards_grid_aligned(
                     current,
                     target,
                     delta_time,

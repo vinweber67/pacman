@@ -203,6 +203,102 @@ class TestGameLoop:
 class TestGameManagerIntegration:
     """Game manager integration tests."""
 
+    def test_pacman_moves_automatically_after_direction_input(self) -> None:
+        """Pac-Man should keep moving after a single direction input."""
+        manager = GameManager(CONFIG)
+        manager.start_game()
+        assert manager.current_level is not None
+
+        level = manager.current_level
+        pacman = level.pacman
+        move_setup = None
+        direction_candidates = [
+            (65363, 1, 0),
+            (65361, -1, 0),
+            (65364, 0, 1),
+            (65362, 0, -1),
+        ]
+        for y in range(level.maze.height):
+            for x in range(level.maze.width):
+                for key, dx, dy in direction_candidates:
+                    first_x, first_y = x + dx, y + dy
+                    second_x, second_y = x + 2 * dx, y + 2 * dy
+                    if not level.maze.can_move(x, y, first_x, first_y):
+                        continue
+                    if not level.maze.can_move(first_x, first_y, second_x, second_y):
+                        continue
+                    move_setup = (x, y, key, dx, dy)
+                    break
+                if move_setup is not None:
+                    break
+            if move_setup is not None:
+                break
+
+        if move_setup is None:
+            pytest.skip("No two-step straight corridor available in this maze")
+
+        start_x, start_y, key, dx, dy = move_setup
+        pacman.move_to(start_x, start_y)
+        manager.state.set_pacman_position(start_x, start_y)
+
+        manager.handle_input(key)
+        before = pacman.position
+        manager.update(0.12)
+        first_step = pacman.position
+        manager.update(0.12)
+        second_step = pacman.position
+
+        assert first_step != before
+        assert first_step == (start_x + dx, start_y + dy)
+        assert second_step == (start_x + 2 * dx, start_y + 2 * dy)
+
+    def test_pacman_applies_queued_turn_when_possible(self) -> None:
+        """Queued direction should be applied on the next valid tile."""
+        manager = GameManager(CONFIG)
+        manager.start_game()
+        assert manager.current_level is not None
+
+        level = manager.current_level
+        pacman = level.pacman
+        start = pacman.position
+        start_neighbors = level.maze.get_neighbors(start[0], start[1])
+        assert start_neighbors
+
+        first_target = start_neighbors[0]
+        if first_target[0] > start[0]:
+            first_key = 65363
+        elif first_target[0] < start[0]:
+            first_key = 65361
+        elif first_target[1] > start[1]:
+            first_key = 65364
+        else:
+            first_key = 65362
+
+        manager.handle_input(first_key)
+        manager.update(0.12)
+        current = pacman.position
+        assert current == first_target
+
+        next_neighbors = level.maze.get_neighbors(current[0], current[1])
+        turn_candidates = [pos for pos in next_neighbors if pos != start]
+        if not turn_candidates:
+            pytest.skip("No turn candidate available from this maze position")
+
+        turn_target = turn_candidates[0]
+        if turn_target[0] > current[0]:
+            turn_key = 65363
+        elif turn_target[0] < current[0]:
+            turn_key = 65361
+        elif turn_target[1] > current[1]:
+            turn_key = 65364
+        else:
+            turn_key = 65362
+
+        manager.handle_input(turn_key)
+        manager.update(0.12)
+
+        assert pacman.position == turn_target
+
     def test_menu_navigation_with_arrow_keys(self) -> None:
         """Arrow keys navigate menu when gameplay has not started."""
         manager = GameManager(CONFIG)
