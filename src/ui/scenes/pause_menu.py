@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import time
 from src.ui.renderer import Renderer
 from src.ui.scenes.scene import Scene
 
@@ -14,11 +15,16 @@ class PauseMenuScene(Scene):
         self.options = ["Resume", "Main Menu"]
         self.selected = 0
         self._anim_time = 0.0
+        self._last_nav_key: int | None = None
+        self._last_nav_time = 0.0
+        self._nav_repeat_cooldown = 0.14
 
     def on_enter(self) -> None:
         """Prepare active selections on start."""
         self.selected = 0
         self._anim_time = 0.0
+        self._last_nav_key = None
+        self._last_nav_time = 0.0
 
     def on_exit(self) -> None:
         """Cleanup when exiting menu."""
@@ -120,7 +126,20 @@ class PauseMenuScene(Scene):
 
     def handle_input(self, key: int) -> None:
         """Forward input selections."""
+        now = time.monotonic()
+        is_nav = key in (65364, ord("s"), 65362, ord("w"))
+        if (
+            is_nav
+            and self._last_nav_key == key
+            and now - self._last_nav_time < self._nav_repeat_cooldown
+        ):
+            return
+
         if key in (65364, ord("s")):
             self.selected = (self.selected + 1) % len(self.options)
+            self._last_nav_key = key
+            self._last_nav_time = now
         elif key in (65362, ord("w")):
             self.selected = (self.selected - 1) % len(self.options)
+            self._last_nav_key = key
+            self._last_nav_time = now

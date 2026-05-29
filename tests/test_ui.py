@@ -1,5 +1,7 @@
 """Tests for the UI layer."""
 
+import src.ui.scenes.main_menu as main_menu_scene_module
+
 from src.ui.colors import COLORS
 from src.ui.renderer import Renderer
 from src.ui.scenes.game_over import GameOverScene
@@ -39,6 +41,27 @@ class TestScenes:
         assert menu.selected == 1
         menu.handle_input(65362)
         assert menu.selected == 0
+
+    def test_main_menu_ignores_fast_repeat_same_key(
+        self,
+        monkeypatch,
+    ) -> None:
+        """Very fast repeated same navigation key should not skip items."""
+        menu = MainMenuScene()
+
+        timestamps = iter([1.0, 1.05, 1.30])
+        monkeypatch.setattr(
+            main_menu_scene_module.time,
+            "monotonic",
+            lambda: next(timestamps),
+        )
+
+        menu.handle_input(65364)
+        assert menu.selected == 1
+        menu.handle_input(65364)
+        assert menu.selected == 1
+        menu.handle_input(65364)
+        assert menu.selected == 2
 
     def test_game_over_name_submission(self) -> None:
         """Game over scene captures and submits player names."""
