@@ -236,9 +236,9 @@ class MainMenuScene(Scene):
 
         # Info line at the bottom
         renderer.draw_text(
-            (renderer.width - 250) // 2,
+            (renderer.width - 300) // 2,
             renderer.height - 40,
-            "Use W/S or Arrow Keys | Enter to Select",
+            "W/S or Arrows to navigate  |  Enter to select  |  ESC to quit",
             (100, 110, 140),
             size=14,
             bold=False

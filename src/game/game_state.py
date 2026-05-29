@@ -40,6 +40,9 @@ class GameState:
     # Entity positions
     pacman_position: Position = (10, 10)
     ghost_positions: List[Position] = field(default_factory=list)
+    # Sub-tile visual positions updated every render frame (tile units, float)
+    pacman_visual_pos: tuple = field(default_factory=lambda: (10.0, 10.0))
+    ghost_visual_positions_float: List[tuple] = field(default_factory=list)
     ghost_edible_states: List[bool] = field(default_factory=list)
     ghost_respawn_positions: List[Position] = field(default_factory=list)
     ghost_path_overlays: List[List[Position]] = field(default_factory=list)
@@ -83,6 +86,8 @@ class GameState:
         self.show_all_paths = False
         self.pacman_position = (10, 10)
         self.ghost_positions = []
+        self.pacman_visual_pos: tuple = (10.0, 10.0)
+        self.ghost_visual_positions_float: list = []
         self.ghost_edible_states = []
         self.ghost_respawn_positions = []
         self.ghost_path_overlays = []
@@ -113,6 +118,8 @@ class GameState:
         self.show_all_paths = False
         self.pacman_position = (10, 10)
         self.ghost_positions = []
+        self.pacman_visual_pos = (10.0, 10.0)
+        self.ghost_visual_positions_float = []
         self.ghost_edible_states = []
         self.ghost_respawn_positions = []
         self.ghost_path_overlays = []
@@ -149,6 +156,16 @@ class GameState:
     def set_ghost_positions(self, positions: List[Position]) -> None:
         """Set all ghost positions."""
         self.ghost_positions = positions
+
+    def set_pacman_visual_pos(self, x: float, y: float) -> None:
+        """Update sub-tile visual position of Pac-Man (tile units)."""
+        self.pacman_visual_pos = (x, y)
+
+    def set_ghost_visual_positions_float(
+        self, positions: List[tuple]
+    ) -> None:
+        """Update sub-tile visual positions of ghosts (tile units)."""
+        self.ghost_visual_positions_float = list(positions)
 
     def set_ghost_edible_states(self, states: List[bool]) -> None:
         """Set whether each rendered ghost is currently edible."""

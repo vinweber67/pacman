@@ -218,6 +218,13 @@ class GameScene(Scene):
             updated.append(current)
         self._ghost_visual_positions = updated
 
+        # Publish sub-tile positions so GameManager can do pixel-accurate
+        # collision detection instead of tile-exact comparisons.
+        self.state.set_pacman_visual_pos(
+            self._pacman_visual_pos[0], self._pacman_visual_pos[1]
+        )
+        self.state.set_ghost_visual_positions_float(self._ghost_visual_positions)
+
     @staticmethod
     def _layout(renderer: Renderer, maze: Maze) -> tuple[int, int, int]:
         """Compute dynamic maze layout on screen."""

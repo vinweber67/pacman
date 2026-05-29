@@ -29,8 +29,11 @@ class GameOverScene(Scene):
         return name
 
     def on_enter(self) -> None:
-        """Reset input buffers on entry."""
-        self.player_name = ""
+        """Reset input buffers on entry, keeping any pre-filled name."""
+        # player_name may have been set by GameManager before on_enter is
+        # called; only reset it if it was not pre-populated.
+        if not self.player_name:
+            self.player_name = ""
         self._submitted_name = None
         self._anim_time = 0.0
 

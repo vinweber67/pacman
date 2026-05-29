@@ -95,6 +95,13 @@ class HighscoreManager:
         """Return the current top 10 scores."""
         return list(self.scores)
 
+    def get_last_player_name(self) -> str:
+        """Return the name of the most recently added score entry, or empty string."""
+        if not self.scores:
+            return ""
+        latest = max(self.scores, key=lambda e: e.timestamp)
+        return latest.name
+
     def _normalize_name(self, name: str) -> str | None:
         """Validate and normalize a player name."""
         cleaned_name = name.strip()

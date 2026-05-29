@@ -341,15 +341,45 @@ class GameManager:
                 self._move_ghost(ghost)
 
     def _check_ghost_collisions(self) -> None:
-        """Resolve collisions between Pac-Man and ghosts."""
+        """Resolve collisions between Pac-Man and ghosts.
+
+        Uses the sub-tile visual positions (float, in tile units) written each
+        frame by GameScene so that a collision is registered as soon as the two
+        sprites visually touch, not when they share the exact same tile.
+        The threshold equals the sum of both radii: 2 × (ENTITY_SCALE / 2)
+        = ENTITY_SCALE ≈ 0.70 tile.
+        """
+        _COLLISION_DISTANCE = 0.68  # slightly under ENTITY_SCALE for crisp feel
         if self.current_level is None:
             return
 
         pacman = self.current_level.pacman
-        for ghost in self.current_level.ghosts:
+        ghost_visuals = self.state.ghost_visual_positions_float
+        visual_ready = len(ghost_visuals) == len(self.current_level.ghosts)
+
+        # Use sub-tile visual positions when available (populated by GameScene
+        # every render frame); otherwise fall back to integer tile centres so
+        # tests that call this method directly still work correctly.
+        if visual_ready:
+            px_v = self.state.pacman_visual_pos[0]
+            py_v = self.state.pacman_visual_pos[1]
+        else:
+            px_v = float(pacman.position[0])
+            py_v = float(pacman.position[1])
+
+        for idx, ghost in enumerate(self.current_level.ghosts):
             if ghost.is_respawning:
                 continue
-            if ghost.position != pacman.position:
+
+            # Fall back to tile-center coords when visual positions aren't
+            # populated yet (first few frames before GameScene has run).
+            if visual_ready and idx < len(ghost_visuals):
+                gx_v, gy_v = ghost_visuals[idx]
+            else:
+                gx_v, gy_v = float(ghost.position[0]), float(ghost.position[1])
+
+            dist = ((px_v - gx_v) ** 2 + (py_v - gy_v) ** 2) ** 0.5
+            if dist > _COLLISION_DISTANCE:
                 continue
 
             if ghost.is_edible:
@@ -401,6 +431,9 @@ class GameManager:
         if key in (27, 65307):
             if scene_name in {"highscores", "instructions", "game_over"}:
                 self.ui_manager.switch_scene("menu")
+                return
+            if scene_name == "menu":
+                self.loop.stop()
                 return
             if scene_name == "pause":
                 self.state.resume()
@@ -594,6 +627,10 @@ class GameManager:
             set_title = getattr(scene, "set_title", None)
             if callable(set_title):
                 set_title(title)
+            # Pre-fill the name field with the last player who submitted a score.
+            last_name = self.highscore_manager.get_last_player_name()
+            if last_name and hasattr(scene, "player_name"):
+                scene.player_name = last_name
         self.ui_manager.switch_scene("game_over")
 
     def run(self) -> None:
