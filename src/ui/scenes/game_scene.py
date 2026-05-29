@@ -36,6 +36,15 @@ class GameScene(Scene):
         self._ghost_visual_positions: list[tuple[float, float]] = [
             (float(x), float(y)) for x, y in self.state.ghost_positions
         ]
+        # Per-ghost queues of logical tile waypoints the visual must visit
+        # in order.  Prevents visual shortcuts that cut through walls when
+        # the ghost makes a turn before the visual caught up.
+        self._ghost_prev_logical: list[tuple[int, int]] = [
+            pos for pos in self.state.ghost_positions
+        ]
+        self._ghost_waypoint_queues: list[list[tuple[int, int]]] = [
+            [] for _ in self.state.ghost_positions
+        ]
 
     def on_enter(self) -> None:
         """Prepare gameplay rendering state."""
@@ -134,22 +143,41 @@ class GameScene(Scene):
             )
 
         target_ghosts = [
-            (float(x), float(y)) for x, y in self.state.ghost_positions
+            (x, y) for x, y in self.state.ghost_positions
         ]
-        if len(self._ghost_visual_positions) != len(target_ghosts):
-            self._ghost_visual_positions = target_ghosts
+        n = len(target_ghosts)
+
+        # Resize state lists when ghost count changes.
+        if len(self._ghost_visual_positions) != n:
+            self._ghost_visual_positions = [
+                (float(x), float(y)) for x, y in target_ghosts
+            ]
+            self._ghost_prev_logical = list(target_ghosts)
+            self._ghost_waypoint_queues = [[] for _ in target_ghosts]
             return
 
         updated: list[tuple[float, float]] = []
-        for i, (current, target) in enumerate(
-            zip(self._ghost_visual_positions, target_ghosts)
-        ):
-            if (
-                abs(current[0] - target[0]) + abs(current[1] - target[1])
-                > self._TELEPORT_SNAP_DISTANCE
-            ):
-                updated.append(target)
-                continue
+        for i, logical in enumerate(target_ghosts):
+            prev = self._ghost_prev_logical[i]
+            queue = self._ghost_waypoint_queues[i]
+
+            # Detect a new logical step and enqueue it.
+            if logical != prev:
+                dist = abs(logical[0] - prev[0]) + abs(logical[1] - prev[1])
+                if float(dist) <= self._TELEPORT_SNAP_DISTANCE:
+                    queue.append(logical)
+                else:
+                    # Teleport: flush queue, snap visual immediately.
+                    queue.clear()
+                    self._ghost_visual_positions[i] = (
+                        float(logical[0]),
+                        float(logical[1]),
+                    )
+                self._ghost_prev_logical[i] = logical
+
+            current = self._ghost_visual_positions[i]
+
+            # Drain waypoints at constant velocity, tile by tile.
             is_edible = (
                 i < len(self.state.ghost_edible_states)
                 and self.state.ghost_edible_states[i]
@@ -160,14 +188,31 @@ class GameScene(Scene):
                 else self._GHOST_NORMAL_SPEED_RATIO
             )
             ghost_speed = speed_ratio / move_interval
-            updated.append(
-                self._advance_constant_velocity(
-                    current,
-                    target,
-                    ghost_speed,
-                    delta_time,
-                )
-            )
+            remaining_dt = delta_time
+
+            while queue and remaining_dt > 0.0:
+                wp = (float(queue[0][0]), float(queue[0][1]))
+                dx = wp[0] - current[0]
+                dy = wp[1] - current[1]
+                seg_dist = abs(dx) + abs(dy)
+                if seg_dist < 1e-6:
+                    queue.pop(0)
+                    current = wp
+                    continue
+                step = ghost_speed * remaining_dt
+                if step >= seg_dist:
+                    remaining_dt -= seg_dist / ghost_speed
+                    current = wp
+                    queue.pop(0)
+                else:
+                    ratio = step / seg_dist
+                    current = (
+                        current[0] + dx * ratio,
+                        current[1] + dy * ratio,
+                    )
+                    remaining_dt = 0.0
+
+            updated.append(current)
         self._ghost_visual_positions = updated
 
     @staticmethod
@@ -454,13 +499,6 @@ class GameScene(Scene):
             center_x = gx + tile_size // 2
             center_y = gy + max(3, tile_size // 2 - 1)
 
-            renderer.draw_circle(
-                center_x,
-                gy + tile_size - max(2, tile_size // 8),
-                max(2, tile_size // 3),
-                (14, 16, 28),
-            )
-
             renderer.draw_circle(center_x, center_y, radius, color)
             renderer.draw_rect(
                 gx,
@@ -499,12 +537,6 @@ class GameScene(Scene):
             eye_r = max(2, tile_size // 6)
             pupil_r = max(1, eye_r // 2)
 
-            renderer.draw_circle(
-                gx + tile_size // 2,
-                gy + tile_size - max(2, tile_size // 8),
-                max(2, tile_size // 4),
-                (14, 16, 28),
-            )
             renderer.draw_circle(left_eye_x, eye_y, eye_r, (255, 255, 255))
             renderer.draw_circle(right_eye_x, eye_y, eye_r, (255, 255, 255))
             renderer.draw_circle(left_eye_x + 1, eye_y, pupil_r, (80, 150, 255))
