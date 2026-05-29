@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 from src.cheat.cheat_mode import CheatMode
 from src.entities.ai.ghost_behavior import GhostAI
+from src.entities.ghost import Ghost
 from src.utils.constants import Direction
 from src.input.input_handler import InputHandler
 from src.input.key_bindings import Action
@@ -26,6 +27,12 @@ class GameManager:
     _PACMAN_BASE_MOVE_INTERVAL = 0.28
     _PACMAN_MIN_MOVE_INTERVAL = 0.03
 
+    # Original arcade speed ratios (as fraction of theoretical max speed).
+    # Pac-Man: 80% | Ghost normal: 75% | Ghost frightened: 50%
+    # ghost_interval = pacman_interval / ghost_speed_ratio
+    _GHOST_NORMAL_SPEED_RATIO: float = 75.0 / 80.0
+    _GHOST_FRIGHTENED_SPEED_RATIO: float = 50.0 / 80.0
+
     def __init__(self, config: Dict[str, Any]) -> None:
         self.config = config
         self.state = GameState()
@@ -36,14 +43,14 @@ class GameManager:
         )
         self.loop = GameLoop(self)
         self.current_level: LevelData | None = None
-        self._ghost_move_accumulator = 0.0
+        self._ghost_move_accumulators: list[float] = []
         self._pacman_move_accumulator = 0.0
 
     def start_game(self) -> None:
         """Start a new run from the first level."""
         self.state.reset()
         self.current_level = self.level_manager.load_level(1)
-        self._ghost_move_accumulator = 0.0
+        self._ghost_move_accumulators = []
         self._pacman_move_accumulator = 0.0
         self.ui_manager.switch_scene("game")
         self.loop.running = True
@@ -57,7 +64,7 @@ class GameManager:
         self.current_level = self.level_manager.load_level(
             self.state.current_level,
         )
-        self._ghost_move_accumulator = 0.0
+        self._ghost_move_accumulators = []
         self._pacman_move_accumulator = 0.0
 
     def update(self, delta_time: float) -> None:
@@ -81,13 +88,7 @@ class GameManager:
         for ghost in self.current_level.ghosts:
             ghost.update(delta_time)
 
-        self._ghost_move_accumulator += delta_time
-        if self.state.are_ghosts_frozen:
-            self._ghost_move_accumulator = 0.0
-        else:
-            while self._ghost_move_accumulator >= move_interval:
-                self._ghost_move_accumulator -= move_interval
-                self._move_ghosts()
+        self._update_ghost_movement(delta_time, move_interval)
 
         self._sync_ghost_render_state()
         self._check_ghost_collisions()
@@ -217,7 +218,7 @@ class GameManager:
 
         if self.level_manager.has_more_levels():
             self.current_level = self.level_manager.advance_level()
-            self._ghost_move_accumulator = 0.0
+            self._ghost_move_accumulators = []
             self._pacman_move_accumulator = 0.0
             return
 
@@ -285,19 +286,59 @@ class GameManager:
             [path for path in overlays if len(path) >= 2]
         )
 
-    def _move_ghosts(self) -> None:
-        """Move each ghost one step according to its behavior."""
+    def _update_ghost_movement(self, delta_time: float, pacman_interval: float) -> None:
+        """Advance each ghost independently using its own speed ratio.
+
+        Original arcade speeds (% of theoretical max speed, level 1):
+          Pac-Man normal : 80%
+          Ghost normal   : 75%  → ghost_interval = pacman_interval * (80/75)
+          Ghost frightened: 50% → ghost_interval = pacman_interval * (80/50)
+        """
         if self.current_level is None:
             return
 
+        ghosts = self.current_level.ghosts
+        if len(self._ghost_move_accumulators) != len(ghosts):
+            self._ghost_move_accumulators = [0.0] * len(ghosts)
+
+        if self.state.are_ghosts_frozen:
+            self._ghost_move_accumulators = [0.0] * len(ghosts)
+            return
+
+        for i, ghost in enumerate(ghosts):
+            if ghost.is_respawning:
+                self._ghost_move_accumulators[i] = 0.0
+                continue
+
+            speed_ratio = (
+                self._GHOST_FRIGHTENED_SPEED_RATIO
+                if ghost.is_edible
+                else self._GHOST_NORMAL_SPEED_RATIO
+            )
+            ghost_interval = pacman_interval / speed_ratio
+
+            self._ghost_move_accumulators[i] += delta_time
+            while self._ghost_move_accumulators[i] >= ghost_interval:
+                self._ghost_move_accumulators[i] -= ghost_interval
+                self._move_ghost(ghost)
+
+    def _move_ghost(self, ghost: Ghost) -> None:
+        """Move a single ghost one tile according to its AI behavior."""
+        if self.current_level is None:
+            return
         maze = self.current_level.maze
         pacman = self.current_level.pacman
-
-        for ghost in self.current_level.ghosts:
-            next_tile = GhostAI.calculate_next_move(ghost, pacman, maze)
-            if next_tile is None:
-                continue
+        next_tile = GhostAI.calculate_next_move(ghost, pacman, maze)
+        if next_tile is not None:
             ghost.move_to(next_tile[0], next_tile[1])
+
+    def _move_ghosts(self) -> None:
+        """Move all active ghosts one step (kept for test compatibility)."""
+        if self.current_level is None:
+            return
+        for ghost in self.current_level.ghosts:
+            if not ghost.is_respawning:
+                self._move_ghost(ghost)
 
     def _check_ghost_collisions(self) -> None:
         """Resolve collisions between Pac-Man and ghosts."""

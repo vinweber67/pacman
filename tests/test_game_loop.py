@@ -616,7 +616,11 @@ class TestGameManagerIntegration:
             staticmethod(deterministic_move),
         )
 
-        manager.update(manager._pacman_move_interval() + 1e-6)
+        ghost_interval = (
+            manager._pacman_move_interval() / manager._GHOST_NORMAL_SPEED_RATIO
+            + 1e-6
+        )
+        manager.update(ghost_interval)
         moved_positions = [ghost.position for ghost in level.ghosts]
 
         assert any(
@@ -665,7 +669,11 @@ class TestGameManagerIntegration:
             staticmethod(deterministic_move),
         )
 
-        manager.update(manager._pacman_move_interval() + 1e-6)
+        ghost_interval = (
+            manager._pacman_move_interval() / manager._GHOST_NORMAL_SPEED_RATIO
+            + 1e-6
+        )
+        manager.update(ghost_interval)
 
         assert ghost_to_respawn.position == (-1, -1)
         assert manager.state.ghost_respawn_positions == [
