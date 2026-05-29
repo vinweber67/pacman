@@ -25,7 +25,7 @@
   "points_per_ghost": 200,
   "ghost_respawn_time": 10,
   "super_pacgum_duration": 10,
-  "pacman_move_interval": 0.28,
+  "pacman_move_interval": 0.4,
 
   // ===========================================================================
   // Levels Configuration

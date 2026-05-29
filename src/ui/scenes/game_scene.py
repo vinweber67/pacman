@@ -60,6 +60,10 @@ class GameScene(Scene):
         self._held_eaten_super_pellets: dict[tuple[int, int], float] = {}
         self._maze_draw_cache_key: tuple[int, int, int, int, int, int] | None = None
         self._maze_draw_ops: list[tuple[str, tuple]] = []
+        self._power_prev_remaining = 0.0
+        self._power_cycle_max = 0.0
+        self._power42_maze_id: int = -1
+        self._power42_cells: list[tuple[int, int]] = []
 
     def on_enter(self) -> None:
         """Prepare gameplay rendering state."""
@@ -75,6 +79,10 @@ class GameScene(Scene):
         self._held_eaten_super_pellets.clear()
         self._maze_draw_cache_key = None
         self._maze_draw_ops = []
+        self._power_prev_remaining = max(0.0, self.state.super_mode_time_remaining)
+        self._power_cycle_max = self._power_prev_remaining
+        self._power42_maze_id = -1
+        self._power42_cells = []
         return None
 
     def on_exit(self) -> None:
@@ -87,6 +95,13 @@ class GameScene(Scene):
         self._anim_time += safe_delta
         self._update_visual_positions(safe_delta)
         self._update_pellet_visual_hold(safe_delta)
+
+        current_power = max(0.0, self.state.super_mode_time_remaining)
+        if current_power > 0.0 and self._power_prev_remaining <= 0.0:
+            self._power_cycle_max = current_power
+        elif current_power > 0.0:
+            self._power_cycle_max = max(self._power_cycle_max, current_power)
+        self._power_prev_remaining = current_power
 
     def _update_pellet_visual_hold(self, delta_time: float) -> None:
         """Delay pellet disappearance until Pac-Man visually reaches it."""
@@ -861,6 +876,249 @@ class GameScene(Scene):
             (165, 185, 225),
         )
 
+    def _get_power42_cells(self, maze: Maze) -> list[tuple[int, int]]:
+        """Return the WALL cells that form the '42' shape baked into the maze.
+
+        The wheel generator embeds a '42' by adding fully-walled cells
+        (wall_mask == 15, TileType.WALL) in the centre of the maze.
+        We isolate them by flood-filling the reachable wall mass from every
+        border cell and keeping the wall cells NOT reachable from the border
+        (i.e. the interior '42' block that floats in the middle).
+        """
+        mid = id(maze)
+        if mid == self._power42_maze_id:
+            return self._power42_cells
+
+        self._power42_maze_id = mid
+
+        # Collect all fully-walled (solid) cells.
+        all_walls: set[tuple[int, int]] = set()
+        for gy in range(maze.height):
+            for gx in range(maze.width):
+                if maze.wall_mask[gy][gx] == 15:
+                    all_walls.add((gx, gy))
+
+        # Flood-fill from border solid cells to find walls touching the border.
+        border_walls: set[tuple[int, int]] = set()
+        stack: list[tuple[int, int]] = []
+        for pos in all_walls:
+            gx, gy = pos
+            if gx == 0 or gy == 0 or gx == maze.width - 1 or gy == maze.height - 1:
+                stack.append(pos)
+
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        while stack:
+            pos = stack.pop()
+            if pos in border_walls:
+                continue
+            border_walls.add(pos)
+            cx, cy = pos
+            for dx, dy in directions:
+                nb = (cx + dx, cy + dy)
+                if nb in all_walls and nb not in border_walls:
+                    stack.append(nb)
+
+        # Interior '42' cells = solid walls NOT connected to the border mass.
+        interior = sorted(
+            all_walls - border_walls,
+            key=lambda c: (c[1], c[0]),
+        )
+        self._power42_cells = interior
+        return interior
+
+    def _draw_center_power_42(
+        self,
+        renderer: Renderer,
+        offset_x: int,
+        offset_y: int,
+        tile_size: int,
+    ) -> None:
+        """Fill the enclosed '42' wall cells as a draining power gauge."""
+        maze = self.state.maze
+        remaining = max(0.0, self.state.super_mode_time_remaining)
+        if maze is None or remaining <= 0.0:
+            return
+
+        cells = self._get_power42_cells(maze)
+        if not cells:
+            return
+
+        cycle_max = max(remaining, self._power_cycle_max, 0.001)
+        ratio = max(0.0, min(1.0, remaining / cycle_max))
+
+        # Split cells into "4" (left half) and "2" (right half) by x-midpoint.
+        mid_x = (min(gx for gx, _ in cells) + max(gx for gx, _ in cells)) / 2.0
+        cells_4 = sorted(
+            [(gx, gy) for gx, gy in cells if gx <= mid_x],
+            key=lambda c: (c[1], c[0]),
+        )
+        cells_2 = sorted(
+            [(gx, gy) for gx, gy in cells if gx > mid_x],
+            key=lambda c: (c[1], c[0]),
+        )
+
+        # For cells_2, follow the "2" curve: top→right, middle→left, bottom→right.
+        # Split "2" vertically into thirds.
+        if cells_2:
+            min_y2 = min(gy for _, gy in cells_2)
+            max_y2 = max(gy for _, gy in cells_2)
+            y_range = max(1, max_y2 - min_y2)
+            third_h = y_range / 3.0
+
+            def sort_key_2(cell: tuple[int, int]) -> tuple:
+                gx, gy = cell
+                rel_y = gy - min_y2
+                if rel_y < third_h:
+                    # Top third: left to right
+                    return (0, rel_y, gx)
+                elif rel_y < 2 * third_h:
+                    # Middle third: right to left (negate gx)
+                    return (1, rel_y, -gx)
+                else:
+                    # Bottom third: left to right
+                    return (2, rel_y, gx)
+
+            cells_2 = sorted(cells_2, key=sort_key_2)
+
+        # Drain order: "4" first (top→bottom), then "2" (following curve).
+        ordered = cells_4 + cells_2
+        total = len(ordered)
+        # fill_count = cells still lit (from the end of ordered list).
+        fill_count = max(0, int(math.ceil(total * ratio)))
+
+        # Index boundary: cells_2 starts at len(cells_4) in ordered.
+        len4 = len(cells_4)
+        len2 = len(cells_2)
+        # "2" half-drain threshold (in ordered index).
+        half_2_start = len4 + len2 // 2
+
+        # The drain front index: first cell that is still lit.
+        drain_front = total - fill_count
+        # Urgent mode activates only once the drain front has entered the
+        # second half of the "2" — i.e. we are actually draining those cells.
+        urgent_mode = drain_front >= half_2_start
+
+        empty_color = (20, 35, 80)
+        pad = 0
+        sz = tile_size
+
+        for i, (gx, gy) in enumerate(ordered):
+            px = offset_x + gx * tile_size
+            py = offset_y + gy * tile_size
+            lit = i >= drain_front
+            if not lit:
+                renderer.draw_rect(px, py, sz, sz, empty_color)
+                continue
+
+            # Urgency: only blink red once the drain front has reached those cells.
+            in_urgent_zone = urgent_mode and i >= half_2_start
+            if in_urgent_zone:
+                blink = math.sin(self._anim_time * 14.0)
+                if blink > 0.0:
+                    pulse = (blink + 1.0) / 2.0
+                    fill_color = (
+                        int(200 + 55 * pulse),
+                        int(20 * (1.0 - pulse)),
+                        int(20 * (1.0 - pulse)),
+                    )
+                else:
+                    fill_color = empty_color
+            else:
+                pulse = (math.sin(self._anim_time * 8.0) + 1.0) / 2.0
+                fill_color = (
+                    int(70 + 110 * pulse),
+                    int(175 + 65 * pulse),
+                    255,
+                )
+            renderer.draw_rect(px, py, sz, sz, fill_color)
+
+    def _draw_power42_walls(
+        self,
+        renderer: Renderer,
+        offset_x: int,
+        offset_y: int,
+        tile_size: int,
+    ) -> None:
+        """Redraw the walls of the '42' cells on top of the colored fill, matching _draw_maze style."""
+        maze = self.state.maze
+        if maze is None or self.state.super_mode_time_remaining <= 0.0:
+            return
+
+        cells = self._get_power42_cells(maze)
+        if not cells:
+            return
+
+        wall_color = (20, 92, 255)
+        wall_glow = (90, 160, 255)
+        wall_shadow = (8, 38, 120)
+        thickness = max(2, tile_size // 9)
+        highlight = max(1, thickness // 3)
+        radius = max(1, thickness // 2)
+
+        def _draw_round_node(cx: int, cy: int) -> None:
+            renderer.draw_circle(cx, cy, radius, wall_color)
+            renderer.draw_circle(cx - 1, cy - 1, max(1, highlight), wall_glow)
+            renderer.draw_circle(cx + 1, cy + 1, max(1, highlight), wall_shadow)
+
+        def _draw_horizontal_wall(px: int, py: int) -> None:
+            cy = py + radius
+            x1 = px
+            x2 = px + tile_size - 1
+            renderer.draw_line(x1, cy, x2, cy, wall_color, thickness)
+            renderer.draw_line(
+                x1,
+                max(py, cy - radius + highlight),
+                x2,
+                max(py, cy - radius + highlight),
+                wall_glow,
+                highlight,
+            )
+            renderer.draw_line(
+                x1,
+                min(py + thickness - 1, cy + radius - highlight),
+                x2,
+                min(py + thickness - 1, cy + radius - highlight),
+                wall_shadow,
+                highlight,
+            )
+            _draw_round_node(x1, cy)
+            _draw_round_node(x2, cy)
+
+        def _draw_vertical_wall(px: int, py: int) -> None:
+            cx = px + radius
+            y1 = py
+            y2 = py + tile_size - 1
+            renderer.draw_line(cx, y1, cx, y2, wall_color, thickness)
+            renderer.draw_line(
+                max(px, cx - radius + highlight),
+                y1,
+                max(px, cx - radius + highlight),
+                y2,
+                wall_glow,
+                highlight,
+            )
+            renderer.draw_line(
+                min(px + thickness - 1, cx + radius - highlight),
+                y1,
+                min(px + thickness - 1, cx + radius - highlight),
+                y2,
+                wall_shadow,
+                highlight,
+            )
+            _draw_round_node(cx, y1)
+            _draw_round_node(cx, y2)
+
+        for gx, gy in cells:
+            px = offset_x + gx * tile_size
+            py = offset_y + gy * tile_size
+            mask = maze.wall_mask[gy][gx]
+
+            # Draw walls for each direction (bits: top=1, right=2, bottom=4, left=8)
+            if mask & 1:  # Top wall
+                _draw_horizontal_wall(px, py)
+            if mask & 8:  # Left wall
+                _draw_vertical_wall(px, py)
+
     def _draw_hud(self, renderer: Renderer) -> None:
         """Draw top HUD with panel background."""
         renderer.draw_rect(0, 0, renderer.width, self._HUD_HEIGHT, (12, 14, 24))
@@ -913,6 +1171,8 @@ class GameScene(Scene):
         if maze is not None:
             offset_x, offset_y, tile_size = self._layout(renderer, maze)
             self._draw_maze(renderer, offset_x, offset_y, tile_size)
+            self._draw_center_power_42(renderer, offset_x, offset_y, tile_size)
+            self._draw_power42_walls(renderer, offset_x, offset_y, tile_size)
 
         self._draw_pellets(renderer, offset_x, offset_y, tile_size)
         self._draw_path_overlay(renderer, offset_x, offset_y, tile_size)

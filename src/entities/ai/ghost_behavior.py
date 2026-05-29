@@ -72,11 +72,25 @@ class GhostAI:
             ghost.position,
             pacman.position,
         )
-        if distance < 8:
+        spawn_dist = Pathfinder.manhattan_distance(
+            ghost.position,
+            (ghost.spawn_x, ghost.spawn_y),
+        )
+        # Clyde flees to spawn when close to Pac-Man, but uses a hysteresis
+        # dead-zone (flee < 8, only resume chase when > 12) to avoid the
+        # oscillation that occurs when he sits exactly on the threshold.
+        near_spawn = spawn_dist <= 3
+        if distance < 8 and not near_spawn:
             return GhostAI._path_towards(
                 ghost,
                 maze,
                 (ghost.spawn_x, ghost.spawn_y),
+            )
+        if distance < 12 and not near_spawn:
+            # Dead zone: scatter randomly instead of bouncing between states.
+            return GhostAI._as_path(
+                ghost.position,
+                GhostAI._random_move(ghost, maze),
             )
         return GhostAI._path_towards(ghost, maze, pacman.position)
 
