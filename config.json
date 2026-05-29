@@ -15,7 +15,7 @@
   // ===========================================================================
   // Pacgums (Pellets)
   // ===========================================================================
-  "pacgum_count": 42,
+  "pacgum_count": 9999,
   "points_per_pacgum": 10,
   "points_per_super_pacgum": 50,
 
@@ -25,6 +25,7 @@
   "points_per_ghost": 200,
   "ghost_respawn_time": 10,
   "super_pacgum_duration": 10,
+  "pacman_move_interval": 0.28,
 
   // ===========================================================================
   // Levels Configuration

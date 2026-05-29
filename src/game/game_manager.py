@@ -23,7 +23,7 @@ logger = setup_logger(__name__)
 class GameManager:
     """Coordinate level loading, UI and the main loop."""
 
-    _PACMAN_BASE_MOVE_INTERVAL = 0.12
+    _PACMAN_BASE_MOVE_INTERVAL = 0.28
     _PACMAN_MIN_MOVE_INTERVAL = 0.03
 
     def __init__(self, config: Dict[str, Any]) -> None:
@@ -73,18 +73,21 @@ class GameManager:
 
         self._update_ghost_path_overlay()
 
-        self._update_pacman_movement(delta_time)
+        move_interval = self._pacman_move_interval()
+        self.state.set_entity_move_interval(move_interval)
+
+        self._update_pacman_movement(delta_time, move_interval)
 
         for ghost in self.current_level.ghosts:
             ghost.update(delta_time)
 
         self._ghost_move_accumulator += delta_time
-        if (
-            self._ghost_move_accumulator >= 0.18
-            and not self.state.are_ghosts_frozen
-        ):
+        if self.state.are_ghosts_frozen:
             self._ghost_move_accumulator = 0.0
-            self._move_ghosts()
+        else:
+            while self._ghost_move_accumulator >= move_interval:
+                self._ghost_move_accumulator -= move_interval
+                self._move_ghosts()
 
         self._sync_ghost_render_state()
         self._check_ghost_collisions()
@@ -111,13 +114,16 @@ class GameManager:
         interval = base_interval / speed_multiplier
         return max(self._PACMAN_MIN_MOVE_INTERVAL, interval)
 
-    def _update_pacman_movement(self, delta_time: float) -> None:
+    def _update_pacman_movement(
+        self,
+        delta_time: float,
+        move_interval: float,
+    ) -> None:
         """Move Pac-Man continuously using current/queued direction."""
         if self.current_level is None or delta_time <= 0.0:
             return
 
         self._pacman_move_accumulator += delta_time
-        move_interval = self._pacman_move_interval()
 
         while self._pacman_move_accumulator >= move_interval:
             self._pacman_move_accumulator -= move_interval

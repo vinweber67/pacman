@@ -16,8 +16,9 @@ class GameScene(Scene):
     """Gameplay scene with enriched visual rendering."""
 
     _HUD_HEIGHT = 84
-    _PACMAN_BLEND_TIME = 0.12
-    _GHOST_BLEND_TIME = 0.14
+    _DEFAULT_MOVE_INTERVAL = 0.28
+    _MIN_PACMAN_BLEND_TIME = 0.12
+    _MIN_GHOST_BLEND_TIME = 0.14
     _TELEPORT_SNAP_DISTANCE = 2.5
 
     def __init__(self) -> None:
@@ -111,6 +112,25 @@ class GameScene(Scene):
 
     def _update_visual_positions(self, delta_time: float) -> None:
         """Smooth visual positions while keeping gameplay tile-based."""
+        move_interval = max(
+            0.01,
+            float(
+                getattr(
+                    self.state,
+                    "entity_move_interval",
+                    self._DEFAULT_MOVE_INTERVAL,
+                )
+            ),
+        )
+        pacman_blend_time = max(
+            self._MIN_PACMAN_BLEND_TIME,
+            move_interval * 0.55,
+        )
+        ghost_blend_time = max(
+            self._MIN_GHOST_BLEND_TIME,
+            move_interval * 0.60,
+        )
+
         target_pacman = (
             float(self.state.pacman_position[0]),
             float(self.state.pacman_position[1]),
@@ -127,7 +147,7 @@ class GameScene(Scene):
                 self._pacman_visual_pos,
                 target_pacman,
                 delta_time,
-                self._PACMAN_BLEND_TIME,
+                pacman_blend_time,
             )
 
         target_ghosts = [
@@ -150,7 +170,7 @@ class GameScene(Scene):
                     current,
                     target,
                     delta_time,
-                    self._GHOST_BLEND_TIME,
+                    ghost_blend_time,
                 )
             )
         self._ghost_visual_positions = updated

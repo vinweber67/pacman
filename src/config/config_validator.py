@@ -14,6 +14,7 @@ class ConfigValidator:
         "highscore_filename": ".data/highscores.json",
         "lives": 3,
         "pacgum_count": 42,
+        "pacman_move_interval": 0.28,
         "points_per_pacgum": 10,
         "points_per_super_pacgum": 50,
         "points_per_ghost": 200,
@@ -82,6 +83,20 @@ class ConfigValidator:
                     f"Invalid {key}, using default: {default_value}"
                 )
                 config[key] = default_value
+
+        pacman_move_interval = config.get("pacman_move_interval")
+        if (
+            not isinstance(pacman_move_interval, (int, float))
+            or pacman_move_interval <= 0
+        ):
+            default_value = ConfigValidator.DEFAULT_CONFIG[
+                "pacman_move_interval"
+            ]
+            logger.warning(
+                "Invalid pacman_move_interval, using default: %s",
+                default_value,
+            )
+            config["pacman_move_interval"] = default_value
 
         # Validate respawn times
         for key in ["ghost_respawn_time", "super_pacgum_duration"]:

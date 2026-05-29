@@ -210,6 +210,8 @@ class TestGameManagerIntegration:
         assert manager.current_level is not None
 
         level = manager.current_level
+        level.ghosts = []
+        manager.state.set_ghost_positions([])
         pacman = level.pacman
         move_setup = None
         direction_candidates = [
@@ -240,12 +242,13 @@ class TestGameManagerIntegration:
         start_x, start_y, key, dx, dy = move_setup
         pacman.move_to(start_x, start_y)
         manager.state.set_pacman_position(start_x, start_y)
+        step_dt = manager._pacman_move_interval() + 1e-6
 
         manager.handle_input(key)
         before = pacman.position
-        manager.update(0.12)
+        manager.update(step_dt)
         first_step = pacman.position
-        manager.update(0.12)
+        manager.update(step_dt)
         second_step = pacman.position
 
         assert first_step != before
@@ -259,6 +262,8 @@ class TestGameManagerIntegration:
         assert manager.current_level is not None
 
         level = manager.current_level
+        level.ghosts = []
+        manager.state.set_ghost_positions([])
         pacman = level.pacman
         start = pacman.position
         start_neighbors = level.maze.get_neighbors(start[0], start[1])
@@ -274,8 +279,9 @@ class TestGameManagerIntegration:
         else:
             first_key = 65362
 
+        step_dt = manager._pacman_move_interval() + 1e-6
         manager.handle_input(first_key)
-        manager.update(0.12)
+        manager.update(step_dt)
         current = pacman.position
         assert current == first_target
 
@@ -295,7 +301,7 @@ class TestGameManagerIntegration:
             turn_key = 65362
 
         manager.handle_input(turn_key)
-        manager.update(0.12)
+        manager.update(step_dt)
 
         assert pacman.position == turn_target
 
@@ -461,11 +467,11 @@ class TestGameManagerIntegration:
         manager = GameManager(CONFIG)
         manager.start_game()
 
-        assert manager.state.cheat_overlay_visible is True
-        manager.handle_input(ord("h"))
         assert manager.state.cheat_overlay_visible is False
         manager.handle_input(ord("h"))
         assert manager.state.cheat_overlay_visible is True
+        manager.handle_input(ord("h"))
+        assert manager.state.cheat_overlay_visible is False
 
     def test_super_mode_timer_counts_down(self) -> None:
         """Super mode timer should decrease as gameplay updates."""
@@ -610,7 +616,7 @@ class TestGameManagerIntegration:
             staticmethod(deterministic_move),
         )
 
-        manager.update(0.2)
+        manager.update(manager._pacman_move_interval() + 1e-6)
         moved_positions = [ghost.position for ghost in level.ghosts]
 
         assert any(
@@ -659,7 +665,7 @@ class TestGameManagerIntegration:
             staticmethod(deterministic_move),
         )
 
-        manager.update(0.2)
+        manager.update(manager._pacman_move_interval() + 1e-6)
 
         assert ghost_to_respawn.position == (-1, -1)
         assert manager.state.ghost_respawn_positions == [

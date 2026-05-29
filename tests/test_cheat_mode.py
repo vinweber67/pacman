@@ -93,8 +93,8 @@ def test_toggle_cheat_overlay() -> None:
     state = GameState()
     state.reset()
 
-    assert state.cheat_overlay_visible is True
-    CheatMode.toggle_overlay(state)
     assert state.cheat_overlay_visible is False
     CheatMode.toggle_overlay(state)
     assert state.cheat_overlay_visible is True
+    CheatMode.toggle_overlay(state)
+    assert state.cheat_overlay_visible is False

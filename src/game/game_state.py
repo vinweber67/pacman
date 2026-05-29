@@ -32,8 +32,9 @@ class GameState:
     are_ghosts_frozen: bool = False
     no_time_limit: bool = False
     player_speed_multiplier: float = 1.0
+    entity_move_interval: float = 0.28
     super_mode_time_remaining: float = 0.0
-    cheat_overlay_visible: bool = True
+    cheat_overlay_visible: bool = False
     show_all_paths: bool = False
 
     # Entity positions
@@ -76,8 +77,9 @@ class GameState:
         self.are_ghosts_frozen = False
         self.no_time_limit = False
         self.player_speed_multiplier = 1.0
+        self.entity_move_interval = 0.28
         self.super_mode_time_remaining = 0.0
-        self.cheat_overlay_visible = True
+        self.cheat_overlay_visible = False
         self.show_all_paths = False
         self.pacman_position = (10, 10)
         self.ghost_positions = []
@@ -105,8 +107,9 @@ class GameState:
         self.are_ghosts_frozen = False
         self.no_time_limit = False
         self.player_speed_multiplier = 1.0
+        self.entity_move_interval = 0.28
         self.super_mode_time_remaining = 0.0
-        self.cheat_overlay_visible = True
+        self.cheat_overlay_visible = False
         self.show_all_paths = False
         self.pacman_position = (10, 10)
         self.ghost_positions = []
@@ -175,6 +178,10 @@ class GameState:
     def set_super_mode_time_remaining(self, seconds: float) -> None:
         """Update remaining super mode time in seconds."""
         self.super_mode_time_remaining = max(0.0, float(seconds))
+
+    def set_entity_move_interval(self, seconds: float) -> None:
+        """Update shared movement interval used by gameplay entities."""
+        self.entity_move_interval = max(0.01, float(seconds))
 
     def set_ghost_path_overlays(self, paths: List[List[Position]]) -> None:
         """Store path overlays used by the cheat visualization."""
