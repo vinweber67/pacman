@@ -290,7 +290,62 @@ class GameScene(Scene):
         wall_shadow = (8, 38, 120)
         floor_a = (11, 15, 30)
         floor_b = (13, 18, 34)
-        thickness = max(1, tile_size // 8)
+        thickness = max(2, tile_size // 9)
+        highlight = max(1, thickness // 3)
+        radius = max(1, thickness // 2)
+
+        def _draw_round_node(cx: int, cy: int) -> None:
+            renderer.draw_circle(cx, cy, radius, wall_color)
+            renderer.draw_circle(cx - 1, cy - 1, max(1, highlight), wall_glow)
+            renderer.draw_circle(cx + 1, cy + 1, max(1, highlight), wall_shadow)
+
+        def _draw_horizontal_wall(px: int, py: int) -> None:
+            cy = py + radius
+            x1 = px
+            x2 = px + tile_size - 1
+            renderer.draw_line(x1, cy, x2, cy, wall_color, thickness)
+            renderer.draw_line(
+                x1,
+                max(py, cy - radius + highlight),
+                x2,
+                max(py, cy - radius + highlight),
+                wall_glow,
+                highlight,
+            )
+            renderer.draw_line(
+                x1,
+                min(py + thickness - 1, cy + radius - highlight),
+                x2,
+                min(py + thickness - 1, cy + radius - highlight),
+                wall_shadow,
+                highlight,
+            )
+            _draw_round_node(x1, cy)
+            _draw_round_node(x2, cy)
+
+        def _draw_vertical_wall(px: int, py: int) -> None:
+            cx = px + radius
+            y1 = py
+            y2 = py + tile_size - 1
+            renderer.draw_line(cx, y1, cx, y2, wall_color, thickness)
+            renderer.draw_line(
+                max(px, cx - radius + highlight),
+                y1,
+                max(px, cx - radius + highlight),
+                y2,
+                wall_glow,
+                highlight,
+            )
+            renderer.draw_line(
+                min(px + thickness - 1, cx + radius - highlight),
+                y1,
+                min(px + thickness - 1, cx + radius - highlight),
+                y2,
+                wall_shadow,
+                highlight,
+            )
+            _draw_round_node(cx, y1)
+            _draw_round_node(cx, y2)
 
         has_wall_mask = (
             len(maze.wall_mask) == maze.height
@@ -308,66 +363,20 @@ class GameScene(Scene):
 
                 if has_wall_mask:
                     mask = maze.wall_mask[y][x]
+                    # Draw each shared edge once (canonical sides):
+                    # - horizontal walls from top edges
+                    # - vertical walls from left edges
                     if mask & 1:
-                        renderer.draw_rect(
-                            px,
-                            py,
-                            tile_size,
-                            thickness,
-                            wall_color,
-                        )
-                        renderer.draw_rect(
-                            px,
-                            py,
-                            tile_size,
-                            max(1, thickness // 2),
-                            wall_glow,
-                        )
-                    if mask & 2:
-                        renderer.draw_rect(
-                            px + tile_size - thickness,
-                            py,
-                            thickness,
-                            tile_size,
-                            wall_color,
-                        )
-                        renderer.draw_rect(
-                            px + tile_size - max(1, thickness // 2),
-                            py,
-                            max(1, thickness // 2),
-                            tile_size,
-                            wall_shadow,
-                        )
-                    if mask & 4:
-                        renderer.draw_rect(
-                            px,
-                            py + tile_size - thickness,
-                            tile_size,
-                            thickness,
-                            wall_color,
-                        )
-                        renderer.draw_rect(
-                            px,
-                            py + tile_size - max(1, thickness // 2),
-                            tile_size,
-                            max(1, thickness // 2),
-                            wall_shadow,
-                        )
+                        _draw_horizontal_wall(px, py)
+
                     if mask & 8:
-                        renderer.draw_rect(
-                            px,
-                            py,
-                            thickness,
-                            tile_size,
-                            wall_color,
-                        )
-                        renderer.draw_rect(
-                            px,
-                            py,
-                            max(1, thickness // 2),
-                            tile_size,
-                            wall_glow,
-                        )
+                        _draw_vertical_wall(px, py)
+
+                    # Keep outer frame closed on right/bottom boundaries.
+                    if x == maze.width - 1 and (mask & 2):
+                        _draw_vertical_wall(px + tile_size - thickness, py)
+                    if y == maze.height - 1 and (mask & 4):
+                        _draw_horizontal_wall(px, py + tile_size - thickness)
                 elif maze.tiles[y][x] == TileType.WALL:
                     renderer.draw_rect(
                         px,
@@ -376,6 +385,40 @@ class GameScene(Scene):
                         tile_size,
                         (10, 35, 160),
                     )
+
+        # Blend wall junctions so corners / T-junctions look cleaner.
+        if has_wall_mask:
+            for y in range(maze.height + 1):
+                for x in range(maze.width + 1):
+                    has_horizontal = False
+                    has_vertical = False
+
+                    # Horizontal segment touching this vertex.
+                    if y < maze.height:
+                        if x < maze.width and (maze.wall_mask[y][x] & 1):
+                            has_horizontal = True
+                        elif x > 0 and (maze.wall_mask[y][x - 1] & 1):
+                            has_horizontal = True
+                    elif y > 0 and x < maze.width and (maze.wall_mask[y - 1][x] & 4):
+                        has_horizontal = True
+
+                    # Vertical segment touching this vertex.
+                    if x < maze.width:
+                        if y < maze.height and (maze.wall_mask[y][x] & 8):
+                            has_vertical = True
+                        elif y > 0 and (maze.wall_mask[y - 1][x] & 8):
+                            has_vertical = True
+                    elif x > 0 and y < maze.height and (maze.wall_mask[y][x - 1] & 2):
+                        has_vertical = True
+
+                    if not (has_horizontal and has_vertical):
+                        continue
+
+                    vx = offset_x + x * tile_size
+                    vy = offset_y + y * tile_size
+                    join_x = vx + (radius if x < maze.width else -radius)
+                    join_y = vy + (radius if y < maze.height else -radius)
+                    _draw_round_node(join_x, join_y)
 
     def _draw_pellets(
         self,
