@@ -629,8 +629,14 @@ class GameManager:
                 set_title(title)
             # Pre-fill the name field with the last player who submitted a score.
             last_name = self.highscore_manager.get_last_player_name()
-            if last_name and hasattr(scene, "player_name"):
+            if (
+                last_name
+                and last_name != "PLAYER"
+                and hasattr(scene, "player_name")
+            ):
                 scene.player_name = last_name
+            elif hasattr(scene, "player_name"):
+                scene.player_name = ""
         self.ui_manager.switch_scene("game_over")
 
     def run(self) -> None:
@@ -649,6 +655,11 @@ class GameManager:
 
     def finish_game(self, player_name: Optional[str] = None) -> None:
         """Persist the current score."""
-        if player_name is None:
-            player_name = "PLAYER"
-        self.highscore_manager.add_score(player_name, self.state.score)
+        final_name = (player_name or "").strip()
+        if not final_name:
+            last_name = self.highscore_manager.get_last_player_name()
+            if last_name and last_name != "PLAYER":
+                final_name = last_name
+
+        if final_name:
+            self.highscore_manager.add_score(final_name, self.state.score)

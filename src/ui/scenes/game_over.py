@@ -147,7 +147,7 @@ class GameOverScene(Scene):
         # Enter
         if key in (10, 13, ord("\r")):
             name = self.player_name.strip()
-            self._submitted_name = name if name else "PLAYER"
+            self._submitted_name = name
             return
 
         # Backspace
@@ -156,7 +156,7 @@ class GameOverScene(Scene):
             return
 
         if key in (27, 65307):
-            self._submitted_name = "PLAYER"
+            self._submitted_name = ""
             return
 
         if len(self.player_name) >= 10:
