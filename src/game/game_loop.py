@@ -74,12 +74,23 @@ class GameLoop:
     def run(self, max_frames: Optional[int] = None) -> None:
         """Run until stopped or the optional frame budget is reached."""
         frame_count = 0
+        previous_time = time.perf_counter()
         while self.running:
-            self.step(FRAME_TIME)
+            frame_start = time.perf_counter()
+            delta_time = max(0.0, frame_start - previous_time)
+            previous_time = frame_start
+
+            # Clamp unusually large frame gaps so temporary stalls do not
+            # produce visibly abrupt simulation jumps.
+            self.step(min(delta_time, FRAME_TIME * 4.0))
             frame_count += 1
             if max_frames is not None and frame_count >= max_frames:
                 break
-            time.sleep(FRAME_TIME)
+
+            frame_elapsed = time.perf_counter() - frame_start
+            remaining_time = FRAME_TIME - frame_elapsed
+            if remaining_time > 0.0:
+                time.sleep(remaining_time)
 
     def stop(self) -> None:
         """Stop the game loop."""
