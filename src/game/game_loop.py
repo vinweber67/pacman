@@ -89,8 +89,12 @@ class GameLoop:
 
             frame_elapsed = time.perf_counter() - frame_start
             remaining_time = FRAME_TIME - frame_elapsed
-            if remaining_time > 0.0:
-                time.sleep(remaining_time)
+            # Sleep for most of the wait, then spin-wait the last millisecond
+            # for sub-millisecond precision — eliminates OS sleep overshoot.
+            if remaining_time > 0.001:
+                time.sleep(remaining_time - 0.001)
+            while time.perf_counter() - frame_start < FRAME_TIME:
+                pass
 
     def stop(self) -> None:
         """Stop the game loop."""

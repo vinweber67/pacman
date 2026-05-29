@@ -17,9 +17,12 @@ class GameScene(Scene):
 
     _HUD_HEIGHT = 84
     _DEFAULT_MOVE_INTERVAL = 0.28
-    _MIN_PACMAN_BLEND_TIME = 0.12
-    _MIN_GHOST_BLEND_TIME = 0.14
     _TELEPORT_SNAP_DISTANCE = 2.5
+
+    # Speed ratios mirroring the arcade originals (same as GameManager).
+    # Visual position advances at exactly these fractions of Pac-Man speed.
+    _GHOST_NORMAL_SPEED_RATIO: float = 75.0 / 80.0
+    _GHOST_FRIGHTENED_SPEED_RATIO: float = 50.0 / 80.0
 
     def __init__(self) -> None:
         self.state = GameState()
@@ -49,39 +52,22 @@ class GameScene(Scene):
         self._update_visual_positions(safe_delta)
 
     @staticmethod
-    def _lerp_towards(
+    def _advance_constant_velocity(
         current: tuple[float, float],
         target: tuple[float, float],
+        speed_tps: float,
         delta_time: float,
-        blend_time: float,
     ) -> tuple[float, float]:
-        """Move `current` toward `target` using frame-time based smoothing."""
-        if blend_time <= 0.0 or delta_time <= 0.0:
-            return current
+        """Move `current` toward `target` at a perfectly constant speed.
 
-        alpha = min(1.0, delta_time / blend_time)
-        nx = current[0] + (target[0] - current[0]) * alpha
-        ny = current[1] + (target[1] - current[1]) * alpha
+        `speed_tps` is expressed in tiles-per-second.  The entity travels
+        at exactly that speed every frame regardless of frame timing, giving
+        smooth, stutter-free motion.
 
-        if abs(nx - target[0]) < 1e-3:
-            nx = target[0]
-        if abs(ny - target[1]) < 1e-3:
-            ny = target[1]
-        return nx, ny
-
-    @staticmethod
-    def _lerp_towards_grid_aligned(
-        current: tuple[float, float],
-        target: tuple[float, float],
-        delta_time: float,
-        blend_time: float,
-    ) -> tuple[float, float]:
-        """Smooth toward target without diagonal corner cutting.
-
-        If both axes differ, only one axis is advanced for this frame.
-        This keeps entities visually centered in maze corridors while turning.
+        When both axes differ (corner turn), the axis that is almost aligned
+        is snapped first so the entity stays centered in corridors.
         """
-        if blend_time <= 0.0 or delta_time <= 0.0:
+        if speed_tps <= 0.0 or delta_time <= 0.0:
             return current
 
         dx = target[0] - current[0]
@@ -89,29 +75,32 @@ class GameScene(Scene):
         if abs(dx) < 1e-6 and abs(dy) < 1e-6:
             return target
 
-        current_x, current_y = current
+        cur_x, cur_y = current
 
-        # Never blend both axes at once when turning: preserve corridor alignment.
+        # Grid-aligned: snap the nearly-aligned axis first when turning.
         if abs(dx) > 1e-6 and abs(dy) > 1e-6:
             if abs(dx) >= abs(dy):
-                current_y = target[1]
+                cur_y = target[1]
                 dy = 0.0
             else:
-                current_x = target[0]
+                cur_x = target[0]
                 dx = 0.0
 
-        alpha = min(1.0, delta_time / blend_time)
-        nx = current_x + dx * alpha
-        ny = current_y + dy * alpha
+        dist = abs(dx) + abs(dy)
+        step = speed_tps * delta_time
+        if step >= dist:
+            return target
 
-        if abs(nx - target[0]) < 1e-3:
-            nx = target[0]
-        if abs(ny - target[1]) < 1e-3:
-            ny = target[1]
-        return nx, ny
+        ratio = step / dist
+        return (cur_x + dx * ratio, cur_y + dy * ratio)
 
     def _update_visual_positions(self, delta_time: float) -> None:
-        """Smooth visual positions while keeping gameplay tile-based."""
+        """Advance visual positions at constant velocity toward logical targets.
+
+        Each entity moves at exactly `1 tile / move_interval` tiles per second
+        so the visual always travels at constant speed between tile steps,
+        giving perfectly smooth motion independent of frame timing.
+        """
         move_interval = max(
             0.01,
             float(
@@ -122,14 +111,8 @@ class GameScene(Scene):
                 )
             ),
         )
-        pacman_blend_time = max(
-            self._MIN_PACMAN_BLEND_TIME,
-            move_interval * 0.55,
-        )
-        ghost_blend_time = max(
-            self._MIN_GHOST_BLEND_TIME,
-            move_interval * 0.60,
-        )
+        # Pac-Man: 1 tile every move_interval seconds.
+        pacman_speed = 1.0 / move_interval
 
         target_pacman = (
             float(self.state.pacman_position[0]),
@@ -143,11 +126,11 @@ class GameScene(Scene):
         ):
             self._pacman_visual_pos = target_pacman
         else:
-            self._pacman_visual_pos = self._lerp_towards_grid_aligned(
+            self._pacman_visual_pos = self._advance_constant_velocity(
                 self._pacman_visual_pos,
                 target_pacman,
+                pacman_speed,
                 delta_time,
-                pacman_blend_time,
             )
 
         target_ghosts = [
@@ -158,19 +141,31 @@ class GameScene(Scene):
             return
 
         updated: list[tuple[float, float]] = []
-        for current, target in zip(self._ghost_visual_positions, target_ghosts):
+        for i, (current, target) in enumerate(
+            zip(self._ghost_visual_positions, target_ghosts)
+        ):
             if (
                 abs(current[0] - target[0]) + abs(current[1] - target[1])
                 > self._TELEPORT_SNAP_DISTANCE
             ):
                 updated.append(target)
                 continue
+            is_edible = (
+                i < len(self.state.ghost_edible_states)
+                and self.state.ghost_edible_states[i]
+            )
+            speed_ratio = (
+                self._GHOST_FRIGHTENED_SPEED_RATIO
+                if is_edible
+                else self._GHOST_NORMAL_SPEED_RATIO
+            )
+            ghost_speed = speed_ratio / move_interval
             updated.append(
-                self._lerp_towards_grid_aligned(
+                self._advance_constant_velocity(
                     current,
                     target,
+                    ghost_speed,
                     delta_time,
-                    ghost_blend_time,
                 )
             )
         self._ghost_visual_positions = updated
