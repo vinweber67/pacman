@@ -24,6 +24,9 @@ class GameScene(Scene):
     _GHOST_NORMAL_SPEED_RATIO: float = 75.0 / 80.0
     _GHOST_FRIGHTENED_SPEED_RATIO: float = 50.0 / 80.0
 
+    # Fraction of the tile occupied by each entity (1.0 = full tile).
+    _ENTITY_SCALE: float = 0.70
+
     def __init__(self) -> None:
         self.state = GameState()
         self._anim_time = 0.0
@@ -419,7 +422,7 @@ class GameScene(Scene):
         pacman_x, pacman_y = self._pacman_visual_pos
         cx = int(offset_x + pacman_x * tile_size + tile_size / 2)
         cy = int(offset_y + pacman_y * tile_size + tile_size / 2)
-        radius = max(4, tile_size // 2 - 1)
+        radius = max(3, int(tile_size * self._ENTITY_SCALE / 2))
 
         if self.state.super_mode_time_remaining > 0.0:
             glow_pulse = (math.sin(self._anim_time * 11.0) + 1.0) / 2.0
@@ -495,30 +498,34 @@ class GameScene(Scene):
                 )
                 color = frightened_white if is_flashing else frightened_blue
 
-            radius = max(4, tile_size // 2)
-            center_x = gx + tile_size // 2
-            center_y = gy + max(3, tile_size // 2 - 1)
+            radius = max(3, int(tile_size * self._ENTITY_SCALE / 2))
+            half = tile_size // 2
+            body_w = int(tile_size * self._ENTITY_SCALE)
+            body_x = gx + (tile_size - body_w) // 2
+            center_x = gx + half
+            center_y = gy + half
 
             renderer.draw_circle(center_x, center_y, radius, color)
             renderer.draw_rect(
-                gx,
-                gy + tile_size // 2,
-                tile_size,
-                tile_size // 2,
+                body_x,
+                gy + half,
+                body_w,
+                radius,
                 color,
             )
 
-            eye_y = gy + max(3, tile_size // 2)
-            left_eye_x = gx + tile_size // 3
-            right_eye_x = gx + (2 * tile_size) // 3
-            eye_r = max(2, tile_size // 6)
+            eye_y = gy + half - radius // 4
+            eye_offset = max(2, radius // 3)
+            left_eye_x = center_x - eye_offset
+            right_eye_x = center_x + eye_offset
+            eye_r = max(1, radius // 3)
             pupil_r = max(1, eye_r // 2)
             renderer.draw_circle(left_eye_x, eye_y, eye_r, (255, 255, 255))
             renderer.draw_circle(right_eye_x, eye_y, eye_r, (255, 255, 255))
             pupil_color = (200, 40, 40) if is_edible else (20, 40, 180)
-            renderer.draw_circle(left_eye_x + 1, eye_y, pupil_r, pupil_color)
+            renderer.draw_circle(left_eye_x, eye_y, pupil_r, pupil_color)
             renderer.draw_circle(
-                right_eye_x + 1,
+                right_eye_x,
                 eye_y,
                 pupil_r,
                 pupil_color,
@@ -531,10 +538,12 @@ class GameScene(Scene):
                 math.sin(self._anim_time * 6.5 + index * 1.2)
                 * max(1, tile_size // 16)
             )
-            eye_y = gy + max(3, tile_size // 2) + bob_offset
-            left_eye_x = gx + tile_size // 3
-            right_eye_x = gx + (2 * tile_size) // 3
-            eye_r = max(2, tile_size // 6)
+            eye_y = gy + tile_size // 2 + bob_offset
+            radius_r = max(3, int(tile_size * self._ENTITY_SCALE / 2))
+            eye_offset = max(2, radius_r // 3)
+            left_eye_x = gx + tile_size // 2 - eye_offset
+            right_eye_x = gx + tile_size // 2 + eye_offset
+            eye_r = max(1, radius_r // 3)
             pupil_r = max(1, eye_r // 2)
 
             renderer.draw_circle(left_eye_x, eye_y, eye_r, (255, 255, 255))
